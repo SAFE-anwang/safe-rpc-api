@@ -1,12 +1,12 @@
-Bitcoin API
+SAFE API
 ===========
 
-This is a C++ wrapper library for JSON-RPC communication with the Bitcoin daemon. It allows developers to communicate with the Bitcoin daemon without the need to pack and unpack JSON-RPC messages and thus simplifies the interaction with it.
+This is a C++ wrapper library for JSON-RPC communication with the SAFE daemon. Based on https://github.com/minium/bitcoin-api-cpp. It allows developers to communicate with the SAFE daemon without the need to pack and unpack JSON-RPC messages and thus simplifies the interaction with it. 
 
 Building the library
 --------------------
 
-[![Build Status](https://travis-ci.org/minium/bitcoin-api-cpp.svg?branch=master)](https://travis-ci.org/minium/bitcoin-api-cpp)
+[![Build Status](https://travis-ci.org/Bankledger/bitcoin-api-cpp.svg?branch=master)](https://travis-ci.org/Bankledger/bitcoin-api-cpp)
 
 **Dependencies**
 
@@ -45,7 +45,7 @@ int main()
     std::string username = "user";
     std::string password = "pass";
     std::string address = "127.0.0.1";
-    int port = 8332;
+    int port = 5556;//SAFE RPC port
 
     try
     {

@@ -42,6 +42,9 @@ public:
     std::vector<peerinfo_t> getpeerinfo();
     int getconnectioncount();
 
+	/* === MasterNode functions === */
+	int getmasternodecount();
+	void getmasternodelist();
 
     /* === Wallet functions === */
     void backupwallet(const std::string& destination);
@@ -121,6 +124,7 @@ public:
     /* === Mining functions === */
     std::string getbestblockhash();
     std::string getblockhash(int blocknumber);
+	bool getblockhashes(unsigned int newer_timestamp,unsigned int older_timestamp,std::vector<std::string> &ret);
     blockinfo_t getblock(const std::string& blockhash);
     int getblockcount();
 

@@ -14,6 +14,7 @@ SET(SO_VERSION    0)
 
 # Add source directory
 ADD_SUBDIRECTORY(src/bitcoinapi)
+ADD_SUBDIRECTORY(src/projects)
 
 FIND_PACKAGE(Boost COMPONENTS unit_test_framework)
 IF(Boost_FOUND)

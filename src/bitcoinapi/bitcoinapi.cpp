@@ -901,7 +901,8 @@ bool BitcoinAPI::lockunspent(bool unlock, const vector<txout_t>& outputs) {
 }
 
 /* === Mining functions === */
-string BitcoinAPI::getbestblockhash() {
+string BitcoinAPI::getbestblockhash() 
+{
 	string command = "getbestblockhash";
 	Value params, result;
 	result = sendcommand(command, params);
@@ -909,7 +910,8 @@ string BitcoinAPI::getbestblockhash() {
 	return result.asString();
 }
 
-string BitcoinAPI::getblockhash(int blocknumber) {
+string BitcoinAPI::getblockhash(int blocknumber) 
+{
 	string command = "getblockhash";
 	Value params, result;
 	params.append(blocknumber);
@@ -918,7 +920,25 @@ string BitcoinAPI::getblockhash(int blocknumber) {
 	return result.asString();
 }
 
-blockinfo_t BitcoinAPI::getblock(const string& blockhash) {
+bool BitcoinAPI::getblockhashes(unsigned int newer_timestamp,unsigned int older_timestamp,std::vector<std::string> &ret)
+{
+	string command = "getblockhashes";
+	Value params, result;
+	params.append(newer_timestamp);
+	params.append(older_timestamp);
+	result = sendcommand(command, params);
+
+	for(ValueIterator it = result.begin(); it != result.end(); it++)
+	{
+		Value val = (*it);
+		ret.push_back(val.asString());
+	}
+
+	return true;
+}
+
+blockinfo_t BitcoinAPI::getblock(const string& blockhash) 
+{
 	string command = "getblock";
 	Value params, result;
 	blockinfo_t ret;
@@ -933,7 +953,8 @@ blockinfo_t BitcoinAPI::getblock(const string& blockhash) {
 	ret.version = result["version"].asInt();
 	ret.merkleroot = result["merkleroot"].asString();
 
-	for(ValueIterator it = result["tx"].begin(); it != result["tx"].end(); it++){
+	for(ValueIterator it = result["tx"].begin(); it != result["tx"].end(); it++)
+	{
 		ret.tx.push_back((*it).asString());
 	}
 
@@ -951,6 +972,15 @@ blockinfo_t BitcoinAPI::getblock(const string& blockhash) {
 int BitcoinAPI::getblockcount() {
 	string command = "getblockcount";
 	Value params, result;
+	result = sendcommand(command, params);
+
+	return result.asInt();
+}
+
+int BitcoinAPI::getmasternodecount() {
+	string command = "masternode";
+	Value params, result;
+	params.append("count");
 	result = sendcommand(command, params);
 
 	return result.asInt();
@@ -1052,7 +1082,7 @@ getrawtransaction_t BitcoinAPI::getrawtransaction(const string& txid, int verbos
 	params.append(txid);
 	params.append(verbose);
 	result = sendcommand(command, params);
-
+	
 	ret.hex = ((verbose == 0) ? result.asString() : result["hex"].asString());
 
 	if(verbose != 0){
@@ -1075,8 +1105,8 @@ getrawtransaction_t BitcoinAPI::getrawtransaction(const string& txid, int verbos
 				it++) {
 			Value val = (*it);
 			vout_t output;
-
-			output.value = val["value"].asDouble();
+			
+			output.value = std::stod(val["value"].asString());
 			output.n = val["n"].asUInt();
 			output.scriptPubKey.assm = val["scriptPubKey"]["asm"].asString();
 			output.scriptPubKey.hex = val["scriptPubKey"]["hex"].asString();
