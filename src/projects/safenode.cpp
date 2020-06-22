@@ -76,7 +76,7 @@ struct safenode {
 		int Count = 0;
 		double percent = 0.0;
 		 
-		std::cout.precision(2); //??????,??????
+		std::cout.precision(2);
 
 		for(int i = from_blocknumber; i <= to_blocknumber; i++)
 		{
@@ -92,7 +92,7 @@ struct safenode {
 
 	bool GetMasterNodeStatistics(const std::vector<std::string> &hashs,MasterNodeMap &mining_mnmap,MasterNodeMap &reward_mnmap)
 	{
-		std::cout.precision(2); //??????,??????
+		std::cout.precision(2);
 		//get blocks from hashs and decode it
 		int hashCount = hashs.size();
 		int Count = 0;
@@ -265,7 +265,7 @@ int main(int argc,char* argv[])
 	
 	NO_THROW(node.GetMasterNodeStatistics(hashs,mining_map,reward_map),0);
 
-	printf("blocks_count = %d,mining_map: %d, reward_map: %d.\n",hashs.size(),mining_map.size(),reward_map.size());
+	printf("blocks_count = %d,mining_map: %d, reward_map: %d.\n",(int)hashs.size(),(int)mining_map.size(),(int)reward_map.size());
 	
 	double mining_sum = getmasternoderewardvalue(mining_map);
 
