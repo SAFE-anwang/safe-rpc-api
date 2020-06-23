@@ -282,7 +282,7 @@ assetdata_response_t SafeAPI::issueasset(assetdata_t & ad)
 	params.append(ad.bDestory);
 	params.append(ad.bPayCandy);
 	params.append(ad.dCandyAmount);
-	params.append(ad.dCandyExpired);
+	params.append(ad.nCandyExpired);
 	params.append(ad.strRemarks);
 	
 	result = sendcommand(command, params);
@@ -315,7 +315,7 @@ std::string SafeAPI::transferasset(const asset_transfer_t & at)
 	params.append(at.strSafeAddress);
 	params.append(at.strAssetId);
 	params.append(at.dAmount);
-	params.append(at.iLockTime);
+	params.append(at.nLockTime);
 	params.append(at.strRemarks);
 
 	result = sendcommand(command, params);
@@ -363,7 +363,7 @@ std::map<std::string,double> SafeAPI::getcandy(const std::string& strAssetId)
 
 	for (int i = 0; i < result.size(); i++)
 	{
-		candymap[result[i]["txId"]] = result[i]["assetAmount"];
+		candymap[result[i]["txId"].asString()] = result[i]["assetAmount"].asDouble();
 	}
 
     return candymap;
@@ -375,7 +375,6 @@ std::vector<available_candy_list_t> SafeAPI::getavailablecandylist()
 	Value params, result;
 	std::vector<available_candy_list_t> acl;
 	
-	params.append(strAssetId);
 	result = sendcommand(command, params);
 
 	for(ValueIterator it = result["candyList"].begin(); it != result["candyList"].end(); it++)
@@ -383,7 +382,7 @@ std::vector<available_candy_list_t> SafeAPI::getavailablecandylist()
 		Value & candy = (*it);
 		available_candy_list_t ac;
 
-		ac.putTime = candy["putTime"].asUint();
+		ac.putTime = candy["putTime"].asUInt();
 		ac.assetId = candy["assetId"].asString();
 		ac.assetCandyAmount = candy["assetCandyAmount"].asDouble();
 		ac.candyExpired = candy["candyExpired"].asInt();
@@ -444,7 +443,7 @@ std::vector<std::string> SafeAPI::getassetidtxids(const std::string& strAppId, c
     return txs;
 }
 
-std::vector<std::string> SafeAPI::getaddrassettxids(const std::string& strSafeAddress, const std::string& strAssetId, const uint8_t& strTxClass)
+std::vector<std::string> SafeAPI::getaddrassettxids(const std::string& strSafeAddress, const std::string& strAssetId, const uint8_t& nTxClass)
 {
     string command = "getaddrassettxids";
 	Value params, result;
@@ -570,7 +569,7 @@ address_candy_list_reponse_t SafeAPI::getaddresscandylist(const std::string& str
 
 	result = sendcommand(command, params);
 
-	acl.candyBlockTime = result["candyBlockTime"].asUint();
+	acl.candyBlockTime = result["candyBlockTime"].asUInt();
 	for(ValueIterator it = result["details"].begin(); it != result["details"].end(); it++)
 	{
 		Value & v = (*it);
@@ -582,20 +581,6 @@ address_candy_list_reponse_t SafeAPI::getaddresscandylist(const std::string& str
 	}
     return acl;
 }
-
-struct local_asset_amount_t       //used by getlocalassetinfo
-{
-    std::string     assetShortName;
-    std::string     strAssetName;
-    std::string     assetDesc;
-    std::string     assetUnit;
-    int				assetDecimals;
-	long			issueTime;
-    double			assetAvailAmount;
-    double			assetWaitAmount;
-	double			assetLockAmount;
-	double			assetLocalTotalAmount;
-};
 
 local_asset_amount_t SafeAPI::getlocalassetinfo(const std::string& strAssetId)
 {
@@ -613,7 +598,7 @@ local_asset_amount_t SafeAPI::getlocalassetinfo(const std::string& strAssetId)
 	laa.assetUnit = result["assetUnit"].asString();
 
 	laa.assetDecimals = result["assetDecimals"].asInt();
-	laa.issueTime = result["issueTime"].asUint();
+	laa.issueTime = result["issueTime"].asUInt();
 
 	laa.assetAvailAmount = result["assetAvailAmount"].asDouble();
 	laa.assetWaitAmount = result["assetWaitAmount"].asDouble();

@@ -211,7 +211,7 @@ class SafeAPI : public BitcoinAPI
     * @param:strTxClass, required (1--All 2--Normal 3--Locked 4--Issue 5--Add Issue 6--Destorid)
     * @return:transaction ID;
     */
-    std::vector<std::string> getaddrassettxids(const std::string& strSafeAddress, const std::string& strAssetId, const uint8_t& strTxClass);
+    std::vector<std::string> getaddrassettxids(const std::string& strSafeAddress, const std::string& strAssetId, const uint8_t& nTxClass);
 
     /*
     * Query the transaction list by asset ID and safe address
