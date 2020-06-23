@@ -450,7 +450,7 @@ std::vector<std::string> SafeAPI::getaddrassettxids(const std::string& strSafeAd
 	std::vector<std::string> txs;
 	
 	params.append(strSafeAddress);
-	params.append(strAppId);
+	params.append(strAssetId);
 	params.append(nTxClass);
 	result = sendcommand(command, params);
 
@@ -577,7 +577,7 @@ address_candy_list_reponse_t SafeAPI::getaddresscandylist(const std::string& str
 		aca.safeAddress = v["safeAddress"].asString();
 		aca.candyAmount = v["candyAmount"].asDouble();
 
-		acl.push_back(aca);
+		acl.details.push_back(aca);
 	}
     return acl;
 }
