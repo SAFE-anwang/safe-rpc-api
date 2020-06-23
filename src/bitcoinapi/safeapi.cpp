@@ -30,14 +30,14 @@ int SafeAPI::getmasternodecount()
 	return result.asInt();
 }
 
-int SafeAPI::getmasternodelist()
+std::string SafeAPI::getmasternodelist()
 {
 	string command = "masternode";
 	Value params, result;
 	params.append("list");
 	result = sendcommand(command, params);
 
-	return result.asInt();
+	return result.asString();
 }
 
 registerapp_response_t SafeAPI::registerapp(appdata_t & app)
@@ -56,9 +56,9 @@ registerapp_response_t SafeAPI::registerapp(appdata_t & app)
 	result = sendcommand(command, params);
 	
 	registerapp_response_t reg;
-	reg.adminSafeAddress = result["adminSafeAddress"];
-	reg.txId = result["txId"];
-	reg.appId = result["appId"];
+	reg.adminSafeAddress = result["adminSafeAddress"].asString();
+	reg.txId = result["txId"].asString();
+	reg.appId = result["appId"].asString();
 	
     return reg;
 }
@@ -85,7 +85,7 @@ std::string SafeAPI::createextenddatatx(extenddata_t & ed)
 	params.append(ed.nAppTxType);
 	params.append(ed.strUserSafeAddress);
 	params.append(ed.strAppId);
-	params.append(ed.llAppAuthCmd);
+	params.append(ed.dAppAuthCmd);
 	params.append(ed.strExtendData);
 	result = sendcommand(command, params);
 

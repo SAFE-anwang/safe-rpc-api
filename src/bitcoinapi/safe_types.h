@@ -1,4 +1,3 @@
-
 #ifndef SAFE_API_TYPES_H
 #define SAFE_API_TYPES_H
 
@@ -74,18 +73,18 @@ struct extenddata_response_t  //returned by getappdetails
      std::string strAppId;
      int		 dAppAuthCmd;
      std::string strExtendData;
-}
+};
 
 struct extenddata_t : extenddata_response_t  //used by createextenddatatx
 {
      int		 nAppTxType;
-}
+};
 
 struct extenddata_list_response_t  //returned by getextenddata
 {
 	std::string strAppId;
 	std::string strExtendData;
-}
+};
 
 
 /* === ASSET types === */
@@ -96,20 +95,20 @@ struct asset_amount_t						//used by getaddrassetbalance
     double     SendAmount;
     double     totalAmount;
     double     lockAmount;
-}
+};
 
 struct asset_base_t						//used by addissueasset , destroyasset
 {
     std::string     strAssetId;
     double          dAmount;
     std::string     strRemarks;
-}
+};
 
 struct asset_transfer_t : asset_base_t   //used by transferasset
 {
     std::string     strSafeAddress;
     int		        nLockTime;
-}
+};
 
 struct assetdata_t       //used by issueasset, getassetinfo
 {
@@ -136,7 +135,7 @@ struct assetdata_response_t		  //returned by issueasset
 {
     std::string     strAssetId;
     std::string     strTxId;
-}
+};
 
 struct local_asset_amount_t       //used by getlocalassetinfo
 {
@@ -160,7 +159,7 @@ struct candy_info_t   //used by putcandy
     double			dAmount;
 	int				nExpired;
     std::string     strRemarks;
-}
+};
 
 struct available_candy_list_t  //returned by getavailablecandylist;
 {
@@ -168,18 +167,18 @@ struct available_candy_list_t  //returned by getavailablecandylist;
 	std::string		assetId;
     double			assetCandyAmount;
 	int				candyExpired;
-}
+};
 
 struct address_candy_amount_t  //getaddresscandylist
 {
 	std::string		safeAddress;
 	double			candyAmount;
-}
+};
 
 struct address_candy_list_reponse_t   //returned by getaddresscandylist
 {
 	long			candyBlockTime;
 	std::vector<address_candy_amount_t> details;
-}
+};
 
 #endif
