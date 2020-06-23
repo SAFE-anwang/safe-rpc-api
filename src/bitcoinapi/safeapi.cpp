@@ -30,7 +30,7 @@ int SafeAPI::getmasternodecount()
 	return result.asInt();
 }
 
-bool SafeAPI::getmasternodelist()
+int SafeAPI::getmasternodelist()
 {
 	string command = "masternode";
 	Value params, result;
@@ -50,8 +50,8 @@ registerapp_response_t SafeAPI::registerapp(appdata_t & app)
 	params.append(app.nDevType);
 	params.append(app.strDevName);
 	if(app.strWebUrl != "") params.append(app.strWebUrl);
-	if(app.strAppLogoUrl != "") params.append(app.strAppLogoUrl);
-	if(app.strAppCoverUrl != "") params.append(app.strAppCoverUrl);
+	if(app.strLogoUrl != "") params.append(app.strLogoUrl);
+	if(app.strCoverUrl != "") params.append(app.strCoverUrl);
 
 	result = sendcommand(command, params);
 	

@@ -15,7 +15,7 @@ class SafeAPI : public BitcoinAPI
 
 	/* === MasterNode functions === */
 	int  getmasternodecount();
-	void getmasternodelist();
+	int  getmasternodelist();
 
 	
     /************************************************** application module **************************************************/
