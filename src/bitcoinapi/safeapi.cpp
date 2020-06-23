@@ -92,18 +92,18 @@ std::string SafeAPI::createextenddatatx(extenddata_t & ed)
     return result.asString();
 }
 
-std::vector<extenddata_response_t> SafeAPI::getextenddata(const std::string& strTxId)
+std::vector<extenddata_list_response_t> SafeAPI::getextenddata(const std::string& strTxId)
 {
     string command = "getextenddata";
 	Value params, result;
-	std::vector<extenddata_response_t> ver;
+	std::vector<extenddata_list_response_t> ver;
 
 	params.append(strTxId);
 	result = sendcommand(command, params);
 
 	for(ValueIterator it = result["extendDataList"].begin(); it != result["extendDataList"].end(); it++)
 	{
-		extenddata_response_t er;
+		extenddata_list_response_t er;
 		er.strAppId = (*it)["appId"].asString();
 		er.strExtendData = (*it)["appData"].asString();
 		ver.push_back(er);

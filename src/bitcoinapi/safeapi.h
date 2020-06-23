@@ -59,7 +59,7 @@ class SafeAPI : public BitcoinAPI
     * @param:strTxId
     * @return:extend data list
     */
-    std::vector<extenddata_response_t> getextenddata(const std::string& strTxId);
+    std::vector<extenddata_list_response_t> getextenddata(const std::string& strTxId);
 
     /*
     * Return transaction list based on AppID 

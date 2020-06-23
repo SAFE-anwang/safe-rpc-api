@@ -11,14 +11,14 @@
 
 struct apptxids_t   //used by getapptxids
 { 
-	std::string strAppId,
-    int nAppOperType,
+	std::string strAppId;
+    int nAppOperType;
     int nSetType;
 };
 
 struct address_apptxids_t : apptxids_t   //used by getaddressapptxids
 {
-	std::string strSafeAddress,
+	std::string strSafeAddress;
 };
 
 /*
@@ -68,7 +68,7 @@ struct authdata_t  //used by setappauth
     int             nAuth;
 };
 
-struct extenddata_response_t  //returned by getappdetails, returned by getextenddata
+struct extenddata_response_t  //returned by getappdetails
 {
      std::string strUserSafeAddress;
      std::string strAppId;
@@ -81,7 +81,7 @@ struct extenddata_t : extenddata_response_t  //used by createextenddatatx
      int		 nAppTxType;
 }
 
-struct extenddata_response_t  //returned by getextenddata
+struct extenddata_list_response_t  //returned by getextenddata
 {
 	std::string strAppId;
 	std::string strExtendData;
