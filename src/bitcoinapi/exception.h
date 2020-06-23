@@ -14,9 +14,9 @@
 #include <sstream>
 #include <iostream>
 
-#include <jsoncpp/json/json.h>
-#include <jsoncpp/json/reader.h>
-#include <jsoncpp/json/value.h>
+#include <json/json.h>
+#include <json/reader.h>
+#include <json/value.h>
 #include <jsonrpccpp/client.h>
 
 using Json::Value;

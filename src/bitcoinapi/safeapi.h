@@ -6,7 +6,6 @@
 #include "exception.h"
 #include "bitcoinapi.h"
 
-
 class SafeAPI : public BitcoinAPI
 {
 
