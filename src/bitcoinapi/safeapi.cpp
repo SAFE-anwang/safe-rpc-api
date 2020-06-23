@@ -56,7 +56,7 @@ registerapp_response_t SafeAPI::registerapp(appdata_t & app)
 	result = sendcommand(command, params);
 	
 	registerapp_response_t reg;
-	reg.adminSafeAddress = result["adminSafeAddress"].asString();
+	reg.adminAddress = result["adminSafeAddress"].asString();
 	reg.txId = result["txId"].asString();
 	reg.appId = result["appId"].asString();
 	
@@ -119,8 +119,8 @@ std::vector<std::string> SafeAPI::getapptxids(apptxids_t & apptxid)
 	std::vector<std::string> txs;
 
 	params.append(apptxid.strAppId);
-	params.append(apptxid.iAppOperType);
-	params.append(apptxid.iSetType);
+	params.append(apptxid.nAppOperType);
+	params.append(apptxid.nSetType);
 	result = sendcommand(command, params);
 
 	for(ValueIterator it = result["txList"].begin(); it != result["txList"].end(); it++)
@@ -139,8 +139,8 @@ std::vector<std::string> SafeAPI::getaddressapptxids(address_apptxids_t & aat)
 	
 	params.append(aat.strSafeAddress);
 	params.append(aat.strAppId);
-	params.append(aat.iAppOperType);
-	params.append(aat.iSetType);
+	params.append(aat.nAppOperType);
+	params.append(aat.nSetType);
 	result = sendcommand(command, params);
 
 	for(ValueIterator it = result["txList"].begin(); it != result["txList"].end(); it++)
@@ -229,9 +229,9 @@ bool SafeAPI::getappdetails(const std::string& strTxId, appdata_t & appData, aut
 
 		Value obj2 = appinfo[1];
 		ar.nSetType = obj2["setType"].asInt();
-		ar.strAdminAddress = obj2["appId"].asString();
-		ar.strUserAddress = obj2["userSafeAddress"].asString();
-		ar.nAuth = obj2["appAuthCmd"].asInt();
+		ar.appId = obj2["appId"].asString();
+		ar.userSafeAddress = obj2["userSafeAddress"].asString();
+		ar.appAuthCmd = obj2["appAuthCmd"].asInt();
 
 		Value obj3 = appinfo[2];
 		er.strUserSafeAddress = obj3["userSafeAddress"].asString();
@@ -248,7 +248,7 @@ bool SafeAPI::getauthlist(const std::string& strAppId, const std::string& strAdd
     string command = "getauthlist";
 	Value params, result;
 	
-	params.append(strTxId);
+	params.append(strAppId);
 	params.append(strAddress);
 	result = sendcommand(command, params);
 
@@ -271,19 +271,19 @@ assetdata_response_t SafeAPI::issueasset(assetdata_t & ad)
 	Value params, result;
 	assetdata_response_t ar;
 	
-	params.append(strShortName);
-	params.append(strAssetName);
-	params.append(strAssetDesc);
-	params.append(strAssetUnit);
-	params.append(nTotalAmount);
-	params.append(nFirstIssueAmount);
-	params.append(nFirstActualAmount);
-	params.append(nDecimals);
-	params.append(bDestory);
-	params.append(bPayCandy);
-	params.append(nCandyAmount);
-	params.append(nCandyExpired);
-	params.append(strRemarks);
+	params.append(ad.strShortName);
+	params.append(ad.strAssetName);
+	params.append(ad.strAssetDesc);
+	params.append(ad.strAssetUnit);
+	params.append(ad.dTotalAmount);
+	params.append(ad.dFirstIssueAmount);
+	params.append(ad.dFirstActualAmount);
+	params.append(ad.nDecimals);
+	params.append(ad.bDestory);
+	params.append(ad.bPayCandy);
+	params.append(ad.dCandyAmount);
+	params.append(ad.dCandyExpired);
+	params.append(ad.strRemarks);
 	
 	result = sendcommand(command, params);
 

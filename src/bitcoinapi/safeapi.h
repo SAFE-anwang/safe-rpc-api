@@ -68,7 +68,7 @@ class SafeAPI : public BitcoinAPI
     * @param:nSetType, required (Valid when appOperType=3, 1--add 2--delete)
     * @return:transaction list
     */
-    std::vector<std::string> getapptxids(apptxids_t);
+    std::vector<std::string> getapptxids(apptxids_t & apptxid);
 
     /*
     * Return to trading list based on wallet address and AppID 
