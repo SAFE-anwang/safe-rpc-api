@@ -977,15 +977,6 @@ int BitcoinAPI::getblockcount() {
 	return result.asInt();
 }
 
-int BitcoinAPI::getmasternodecount() {
-	string command = "masternode";
-	Value params, result;
-	params.append("count");
-	result = sendcommand(command, params);
-
-	return result.asInt();
-}
-
 void BitcoinAPI::setgenerate(bool generate, int genproclimit) {
 	string command = "setgenerate";
 	Value params;

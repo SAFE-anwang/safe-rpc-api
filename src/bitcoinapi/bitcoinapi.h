@@ -42,10 +42,6 @@ public:
     std::vector<peerinfo_t> getpeerinfo();
     int getconnectioncount();
 
-	/* === MasterNode functions === */
-	int getmasternodecount();
-	void getmasternodelist();
-
     /* === Wallet functions === */
     void backupwallet(const std::string& destination);
     std::string encryptwallet(const std::string& passphrase);
@@ -118,8 +114,6 @@ public:
     std::vector<unspenttxout_t> listunspent(int minconf = 1, int maxconf = 999999);
     std::vector<txout_t> listlockunspent();
     bool lockunspent(bool unlock, const std::vector<txout_t>& outputs);
-
-
 
     /* === Mining functions === */
     std::string getbestblockhash();

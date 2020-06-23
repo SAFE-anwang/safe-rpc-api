@@ -1,4 +1,4 @@
-SAFE API
+SAFE RPC API
 ===========
 
 This is a C++ wrapper library for JSON-RPC communication with the SAFE daemon. Based on https://github.com/minium/bitcoin-api-cpp. It allows developers to communicate with the SAFE daemon without the need to pack and unpack JSON-RPC messages and thus simplifies the interaction with it. 
@@ -45,7 +45,7 @@ int main()
     std::string username = "user";
     std::string password = "pass";
     std::string address = "127.0.0.1";
-    int port = 5556;//SAFE RPC port
+    int port = 5554;//SAFE RPC port
 
     try
     {
