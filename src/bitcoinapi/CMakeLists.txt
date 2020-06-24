@@ -12,7 +12,7 @@ FILE(GLOB safeapi_header ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 FILE(GLOB safeapi_source ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 # Set target libraries
-ADD_LIBRARY(safeapi SHARED ${safeapi_header})
+ADD_LIBRARY(safeapi SHARED ${safeapi_source})
 ADD_LIBRARY(safeapi_static STATIC ${safeapi_source})
 
 # Set output name of static library
