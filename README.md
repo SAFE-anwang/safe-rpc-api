@@ -6,7 +6,7 @@ This is a C++ wrapper library for JSON-RPC communication with the SAFE daemon. B
 Building the library
 --------------------
 
-[![Build Status](https://travis-ci.org/Bankledger/bitcoin-api-cpp.svg?branch=master)](https://travis-ci.org/Bankledger/bitcoin-api-cpp)
+[![Build Status](https://travis-ci.org/Bankledger/safe-rpc-api.svg?branch=master)](https://travis-ci.org/Bankledger/safe-rpc-api)
 
 **Dependencies**
 
@@ -38,7 +38,7 @@ This example will show how the library can be used in your project.
 Filename getbalance.cpp
 
 ```
-#include <bitcoinapi/bitcoinapi.h>
+#include <bitcoinapi/safeapi.h>
 
 int main()
 {
@@ -50,10 +50,10 @@ int main()
     try
     {
         /* Constructor to connect to the bitcoin daemon */
-        BitcoinAPI btc(username, password, address, port);
+        SafeAPI safe(username, password, address, port);
 
         /* Example method - getbalance */
-        std::cout << "Wallet balance: " << btc.getbalance() << std::endl;
+        std::cout << "Wallet balance: " << safe.getbalance() << std::endl;
     }
     catch(BitcoinException e)
     {
@@ -64,10 +64,10 @@ int main()
 
 To successfully compile the program you need to link it with the new library:
 ```
-g++ getbalance.cpp -lbitcoinapi
+g++ getbalance.cpp -lsafeapi
 ```
 
-The full list of available API calls can be found [here](https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list). Nearly the complete list of calls is implemented and thoroughly tested.
+The full list of available API calls can be found [here](https://en.bitcoin.it/wiki/Original_Bitcoin_client/API_calls_list) and [here](https://github.com/Bankledger/safe/src/rpc/server.cpp). Nearly the complete list of calls is implemented and thoroughly tested.
 
 License
 -------
@@ -76,6 +76,7 @@ The bitcoin-api-cpp library is released under the terms of [MIT](http://en.wikip
 
 ```
 Copyright (c) 2014 Krzysztof Okupski
+Copyright (c) 2020 Bankledger, anwang.com, SAFE
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of 
 this software and associated documentation files (the "Software"), to deal in the 
@@ -101,4 +102,4 @@ Used libraries
 
 Acknowledgements
 ----------------
-The original idea for a C++ wrapper for JSON-RPC communication originates from [here](https://github.com/mmgrant73/bitcoinapi). Upon closer evaluation, however, the library contained too many bugs and was thus completely rebuilt from bottom up.
+The original idea for a C++ wrapper for JSON-RPC communication originates from [here](https://github.com/mmgrant73/bitcoinapi) and [here](https://github.com/minium/bitcoin-api-cpp).

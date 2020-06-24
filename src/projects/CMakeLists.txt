@@ -14,7 +14,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/..)
 LINK_DIRECTORIES(/usr/local/lib)
 
 # Link to the appropriate libraries
-LINK_LIBRARIES(bitcoinapi)
+LINK_LIBRARIES(safeapi)
 
 # Create new executable
 ADD_EXECUTABLE(safenode ${SRCS})

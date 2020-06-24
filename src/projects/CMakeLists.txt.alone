@@ -25,7 +25,7 @@ FILE(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h
 # INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 # Link to the appropriate libraries
-# LINK_LIBRARIES(bitcoinapi ${CURL_LIBRARY} ${JSONCPP_LIBRARY} jsonrpccpp-common jsonrpccpp-client boost_system boost_filesystem boost_unit_test_framework)
+# LINK_LIBRARIES(safeapi ${CURL_LIBRARY} ${JSONCPP_LIBRARY} jsonrpccpp-common jsonrpccpp-client boost_system boost_filesystem boost_unit_test_framework)
 
 # Create new executable
 ADD_EXECUTABLE(safenode ${SRCS})
