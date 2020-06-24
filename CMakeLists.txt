@@ -15,11 +15,7 @@ SET(SO_VERSION    0)
 # Add source directory
 ADD_SUBDIRECTORY(src/bitcoinapi)
 ADD_SUBDIRECTORY(src/projects)
-
-FIND_PACKAGE(Boost COMPONENTS unit_test_framework)
-IF(Boost_FOUND)
-    ADD_SUBDIRECTORY(src/test)
-ENDIF()
+ADD_SUBDIRECTORY(src/test)
 
 # Set package settings
 IF(EXISTS "${CMAKE_ROOT}/Modules/CPack.cmake")

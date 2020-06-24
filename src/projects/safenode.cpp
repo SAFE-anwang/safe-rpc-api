@@ -1,7 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <fstream>
-#include <bitcoinapi/bitcoinapi.h>
+#include <bitcoinapi/safeapi.h>
 #include <bitcoinapi/exception.h>
 
 
@@ -18,7 +18,7 @@ struct safenode {
 	std::string address;
 	int port;
 
-	BitcoinAPI safe;
+	SafeAPI safe;
 
     safenode(): username("safe"),password("safe"),address("127.0.0.1"),
        port(5556), safe(username, password, address, port){ }

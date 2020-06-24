@@ -1,8 +1,11 @@
+set(CMAKE_MACOSX_RPATH 1)
+
 FIND_PACKAGE(JSONCPP REQUIRED)
 FIND_PACKAGE(JSONRPCCPP REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 
 INCLUDE_DIRECTORIES(/usr/local/include)
+LINK_DIRECTORIES(/usr/local/lib)
 
 # Find header and source files
 FILE(GLOB bitcoinapi_header ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
@@ -18,7 +21,7 @@ SET_TARGET_PROPERTIES(bitcoinapi_static PROPERTIES OUTPUT_NAME bitcoinapi)
 # Link the library with json-rpc-cpp libs
 TARGET_LINK_LIBRARIES(bitcoinapi
                         ${CURL_LIBRARY}
-                        ${JSONCPP_LIBRARY}
+                        jsoncpp
                         jsonrpccpp-common
                         jsonrpccpp-client)
 

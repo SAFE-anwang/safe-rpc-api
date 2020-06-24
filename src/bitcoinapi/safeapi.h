@@ -8,7 +8,7 @@
 
 class SafeAPI : public BitcoinAPI
 {
-
+public:
     SafeAPI(const std::string username = "safe", const std::string password = "safe", const std::string& address = "127.0.0.1", int port = 5554):BitcoinAPI(username, password, address, port){ }
 
     ~SafeAPI() { }

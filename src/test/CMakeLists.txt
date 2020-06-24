@@ -8,10 +8,11 @@ FIND_PACKAGE(Boost REQUIRED COMPONENTS system filesystem unit_test_framework)
 FILE(GLOB bitcoinapi_tests_source ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 # Include header directory
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/src/)
+INCLUDE_DIRECTORIES(/usr/local/include ${CMAKE_SOURCE_DIR}/src/)
+LINK_DIRECTORIES(/usr/local/lib)
 
 # Create new executable
-ADD_EXECUTABLE(tests EXCLUDE_FROM_ALL ${bitcoinapi_tests_source})
+ADD_EXECUTABLE(tests ${bitcoinapi_tests_source})
 
 # Link to the appropriate libraries
 TARGET_LINK_LIBRARIES(tests
