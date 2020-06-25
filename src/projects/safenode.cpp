@@ -21,7 +21,7 @@ struct safenode {
 	SafeAPI safe;
 
     safenode(): username("safe"),password("safe"),address("127.0.0.1"),
-       port(5556), safe(username, password, address, port){ }
+       port(5554), safe(username, password, address, port){ }
 
     ~safenode() { }
 
@@ -210,7 +210,7 @@ int main(int argc,char* argv[])
 	int nBlockCount = 0 ;
 	int nMasterNodeCount = 0 ;
 
-	printf("Calurate the mining rewards of main nodes in the SAFE network.\nUsage: safenode nFromIndex nToIndex\n\n\n");
+	printf("\n\nCalurate the mining rewards of main nodes in the SAFE network.\nUsage: safenode nFromIndex nToIndex\n\n\n");
 	if(argc != 3) 
 	{
 		printf("error argc num: %d, should be 2 params. exiting...\n",argc);
