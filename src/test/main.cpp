@@ -34,10 +34,10 @@ struct MyFixture {
 	BitcoinAPI btc;
 
      MyFixture()
-     : username("Ulysses"),
-       password("Random"),
+     : username("safe"),
+       password("safe"),
        address("127.0.0.1"),
-       port(8332),
+       port(5556),
        btc(username, password, address, port)
      { }
      ~MyFixture() { }
