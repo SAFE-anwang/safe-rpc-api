@@ -11,25 +11,16 @@
 typedef std::map<std::string,double> MasterNodeMap;
 typedef std::map<std::string,double>::const_iterator ValueIterator;
 
-struct safenode 
+class safenode: public SafeAPI
 {
-	std::string username;
-	std::string password;
-	std::string address;
-	int port;
-
-	SafeAPI safe;
-
-    safenode(): username("safe"),password("safe"),address("127.0.0.1"),
-       port(5554), safe(username, password, address, port){ }
-
+    safenode():SafeAPI(){getInfo();}
     ~safenode() { }
 
-	bool GetInfo()
+	bool getInfo()
 	{
 		getinfo_t info;
 		
-		NO_THROW(info = safe.getinfo(),false);
+		NO_THROW(info = getinfo(),false);
 
 		std::cout <<  "=== getinfo ===" << std::endl;
 		std::cout << "Version: " << info.version << std::endl;
