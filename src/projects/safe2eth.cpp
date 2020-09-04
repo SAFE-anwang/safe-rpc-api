@@ -59,7 +59,7 @@ int main(int argc,char* argv[])
 
 	std::string bitcoinaddress = "XbGhY34UiGcu8PNwWbM2PAFkpRGYp73MES";
 	
-	double amount = safe.getreceivedbyaddress(bitcoinaddress,1);
+	double amount = node.getreceivedbyaddress(bitcoinaddress,1);
 	std::cout << bitcoinaddress <<":amount " << info.errors << amount << std::endl;
 	return 1;
 }
