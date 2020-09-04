@@ -13,6 +13,7 @@ typedef std::map<std::string,double>::const_iterator ValueIterator;
 
 class safenode: public SafeAPI
 {
+public:
     safenode():SafeAPI(){getInfo();}
     ~safenode() { }
 
@@ -40,7 +41,7 @@ class safenode: public SafeAPI
 		std::cout << "Errors: " << info.errors << std::endl << std::endl;
 		return true;
 	}
-}
+};
 
 int main(int argc,char* argv[])
 {
@@ -51,7 +52,7 @@ int main(int argc,char* argv[])
 	std::string bitcoinaddress = "XbGhY34UiGcu8PNwWbM2PAFkpRGYp73MES";
 	
 	double amount = node.getreceivedbyaddress(bitcoinaddress,1);
-	std::cout << bitcoinaddress <<":amount " << info.errors << amount << std::endl;
+	std::cout << bitcoinaddress <<":amount " << amount << std::endl;
 	return 1;
 }
 
