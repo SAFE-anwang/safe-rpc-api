@@ -52,8 +52,8 @@ int main(int argc,char* argv[])
 	int nMasterNodeCount = 0 ;
 
 	std::string bitcoinaddress = "XbGhY34UiGcu8PNwWbM2PAFkpRGYp73MES";
-	
-	double amount = NO_THROW(node.getreceivedbyaddress(bitcoinaddress,1),0);
+	double amount = 0;
+	NO_THROW(amount = node.getreceivedbyaddress(bitcoinaddress,1),0);
 	std::cout << bitcoinaddress <<":amount " << amount << std::endl;
 	return 1;
 }
