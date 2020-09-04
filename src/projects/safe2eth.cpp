@@ -45,13 +45,13 @@ public:
 
 int main(int argc,char* argv[])
 {
-	safenode node;
+	safenode node("safe","safe","127.0.0.1",5556);
 	int nBlockCount = 0 ;
 	int nMasterNodeCount = 0 ;
 
 	std::string bitcoinaddress = "XbGhY34UiGcu8PNwWbM2PAFkpRGYp73MES";
 	
-	double amount = node.getreceivedbyaddress(bitcoinaddress,1);
+	double amount = NO_THROW(node.getreceivedbyaddress(bitcoinaddress,1),0);
 	std::cout << bitcoinaddress <<":amount " << amount << std::endl;
 	return 1;
 }
