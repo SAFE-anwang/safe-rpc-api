@@ -6,6 +6,17 @@
 #include "exception.h"
 #include "bitcoinapi.h"
 
+inline std::string& trim(std::string& s)
+{
+    if (s.empty())
+    {
+        return s;
+    }
+
+    s.erase(0, s.find_first_not_of(" "));
+    s.erase(s.find_last_not_of(" ") + 1);
+    return s;
+}
 class SafeAPI : public BitcoinAPI
 {
 public:
@@ -13,6 +24,10 @@ public:
 
     ~SafeAPI() { }
 
+    //transaction
+
+    safe_decoderawtransaction_t safe_decoderawtransaction(const std::string& hexString);
+    safe_getrawtransaction_t    safe_getrawtransaction(const std::string& txid, int verbose = 0);
 	/* === MasterNode functions === */
 	int  getmasternodecount();
 	std::string  getmasternodelist();

@@ -13,9 +13,10 @@ SET(PATCH_VERSION 0)
 SET(SO_VERSION    0)
 
 # Add source directory
+include_directories(src)
 ADD_SUBDIRECTORY(src/bitcoinapi)
 ADD_SUBDIRECTORY(src/projects)
-ADD_SUBDIRECTORY(src/test)
+#ADD_SUBDIRECTORY(src/test)
 
 # Set package settings
 IF(EXISTS "${CMAKE_ROOT}/Modules/CPack.cmake")

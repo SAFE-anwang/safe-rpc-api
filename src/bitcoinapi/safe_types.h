@@ -6,6 +6,35 @@
 
 #include <jsoncpp/json/json.h>
 
+
+//transaction
+
+struct safe_vout_t : public vout_t
+{
+    uint64_t nUnlockedHeight;
+    std::string reserve;
+    int txType;
+};
+
+struct safe_decoderawtransaction_t {
+    std::string txid;
+    int version;
+    int locktime;
+    std::vector<vin_t> vin;
+    std::vector<safe_vout_t> vout;
+};
+
+/* getrawtransaction return type */
+struct safe_getrawtransaction_t : safe_decoderawtransaction_t {
+    std::string hex;
+    std::string blockhash;
+    unsigned int confirmations;
+    unsigned int time;
+    unsigned int blocktime;
+};
+
+
+
 /* === APP types === */
 
 struct apptxids_t   //used by getapptxids

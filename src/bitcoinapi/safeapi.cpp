@@ -20,7 +20,122 @@ using std::map;
 using std::string;
 using std::vector;
 
-int SafeAPI::getmasternodecount() 
+safe_decoderawtransaction_t SafeAPI::safe_decoderawtransaction(const string& hexString) {
+	string command = "decoderawtransaction";
+	Value params, result;
+	safe_decoderawtransaction_t ret;
+
+	params.append(hexString);
+	result = sendcommand(command, params);
+
+	ret.txid = result["txid"].asString();
+	ret.version = result["version"].asInt();
+	ret.locktime = result["locktime"].asInt();
+	for (ValueIterator it = result["vin"].begin(); it != result["vin"].end(); it++)
+	{
+		Value val = (*it);
+		vin_t input;
+		input.txid = val["txid"].asString();
+		input.n = val["vout"].asUInt();
+		input.scriptSig.assm = val["scriptSig"]["asm"].asString();
+		input.scriptSig.hex = val["scriptSig"]["hex"].asString();
+		input.sequence = val["sequence"].asUInt();
+		ret.vin.push_back(input);
+	}
+
+	for (ValueIterator it = result["vout"].begin(); it != result["vout"].end(); it++)
+	{
+		Value val = (*it);
+		safe_vout_t output;
+
+		output.value = val["value"].asDouble();
+		output.n = val["n"].asUInt();
+
+		//safe
+		output.txType = val["txType"].asUInt();
+		output.nUnlockedHeight = val["nUnlockedHeight"].asUInt();
+		output.reserve = val["reserve"].asString();
+
+		output.scriptPubKey.assm = val["scriptPubKey"]["asm"].asString();
+		output.scriptPubKey.hex = val["scriptPubKey"]["hex"].asString();
+		output.scriptPubKey.reqSigs = val["scriptPubKey"]["reqSigs"].asInt();
+
+		output.scriptPubKey.type = val["scriptPubKey"]["type"].asString();
+		for (ValueIterator it2 = val["scriptPubKey"]["addresses"].begin(); it2 != val["scriptPubKey"]["addresses"].end(); it2++) {
+			output.scriptPubKey.addresses.push_back((*it2).asString());
+		}
+
+		ret.vout.push_back(output);
+	}
+
+	return ret;
+}
+
+/* === Raw transaction calls === */
+safe_getrawtransaction_t SafeAPI::safe_getrawtransaction(const std::string& txid, int verbose)
+{
+	string command = "getrawtransaction";
+	Value params, result;
+	safe_getrawtransaction_t ret;
+
+	params.append(txid);
+	params.append(verbose);
+	result = sendcommand(command, params);
+
+	ret.hex = ((verbose == 0) ? result.asString() : result["hex"].asString());
+
+	if (verbose != 0) 
+	{
+		ret.txid = result["txid"].asString();
+		ret.version = result["version"].asInt();
+		ret.locktime = result["locktime"].asInt();
+		for (ValueIterator it = result["vin"].begin(); it != result["vin"].end();it++) 
+		{
+			Value val = (*it);
+			vin_t input;
+			input.txid = val["txid"].asString();
+			input.n = val["vout"].asUInt();
+			input.scriptSig.assm = val["scriptSig"]["asm"].asString();
+			input.scriptSig.hex = val["scriptSig"]["hex"].asString();
+			input.sequence = val["sequence"].asUInt();
+			ret.vin.push_back(input);
+		}
+
+		for (ValueIterator it = result["vout"].begin(); it != result["vout"].end();it++) 
+		{
+			Value val = (*it);
+			safe_vout_t output;
+
+			output.value = std::stod(val["value"].asString());
+			output.n = val["n"].asUInt();
+
+			//safe
+			output.txType = val["txType"].asUInt();
+			output.nUnlockedHeight = val["nUnlockedHeight"].asUInt();
+			output.reserve = val["reserve"].asString();
+
+			output.scriptPubKey.assm = val["scriptPubKey"]["asm"].asString();
+			output.scriptPubKey.hex = val["scriptPubKey"]["hex"].asString();
+			output.scriptPubKey.reqSigs = val["scriptPubKey"]["reqSigs"].asInt();
+
+			output.scriptPubKey.type = val["scriptPubKey"]["type"].asString();
+			for (ValueIterator it2 = val["scriptPubKey"]["addresses"].begin(); it2 != val["scriptPubKey"]["addresses"].end(); it2++) 
+			{
+				output.scriptPubKey.addresses.push_back((*it2).asString());
+			}
+
+			ret.vout.push_back(output);
+		}
+		ret.blockhash = result["blockhash"].asString();
+		ret.confirmations = result["confirmations"].asUInt();
+		ret.time = result["time"].asUInt();
+		ret.blocktime = result["blocktime"].asUInt();
+	}
+
+	return ret;
+}
+
+int SafeAPI::getmasternodecount()
 {
 	string command = "masternode";
 	Value params, result;
@@ -361,7 +476,7 @@ std::map<std::string,double> SafeAPI::getcandy(const std::string& strAssetId)
 	params.append(strAssetId);
 	result = sendcommand(command, params);
 
-	for (int i = 0; i < result.size(); i++)
+	for (int i = 0; i < (int)result.size(); i++)
 	{
 		candymap[result[i]["txId"].asString()] = result[i]["assetAmount"].asDouble();
 	}

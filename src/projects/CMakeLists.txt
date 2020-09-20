@@ -5,8 +5,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11 -g -Wall")
 
 # Find test source files
 FILE(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/safenode.cpp)
-FILE(GLOB ERC_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/safe2eth.cpp)
-
+FILE(GLOB ETH_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/safe2eth.cpp)
 # Include header directory
 INCLUDE_DIRECTORIES(/usr/local/include)
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/..)
@@ -18,9 +17,9 @@ LINK_DIRECTORIES(/usr/local/lib)
 LINK_LIBRARIES(safeapi)
 
 # Create new executable
-ADD_EXECUTABLE(safenode ${SRCS})
-ADD_EXECUTABLE(safe2eth ${ERC_SRCS})
+#ADD_EXECUTABLE(safenode ${SRCS})
+ADD_EXECUTABLE(safe2eth ${ETH_SRCS})
 
 # Set different name for executable
-SET_TARGET_PROPERTIES(safenode PROPERTIES OUTPUT_NAME safenode)
+#SET_TARGET_PROPERTIES(safenode PROPERTIES OUTPUT_NAME safenode)
 SET_TARGET_PROPERTIES(safe2eth PROPERTIES OUTPUT_NAME safe2eth)
