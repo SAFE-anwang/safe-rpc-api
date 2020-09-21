@@ -9,20 +9,26 @@
 #include <fstream>
 #include <map>
 #include <vector>
+#include "mysqlite.h"
+#include<chrono>
+#include<thread>
 
 
-#define NO_THROW(METHOD,RET)  try {(METHOD);} catch (BitcoinException& e) {           \
+#define THROW_RETURN(METHOD,RET)  try {(METHOD);} catch (BitcoinException& e) {           \
 							 std::cout << "Error (" << e.getCode() << "): "<< e.getMessage() << std::endl; return RET;}
-
-typedef struct 
+#define THROW_NO_RETURN(METHOD)  try {(METHOD);} catch (BitcoinException& e) {           \
+							 std::cout << "Error (" << e.getCode() << "): "<< e.getMessage() << std::endl;}
+typedef struct
 {
 	std::string txid;
-	int nVout;
+	int n;
+	double amount;
+	int confirmations;
+	int blockindex;
 	std::string blockhash;
 	std::string safe_address;
-	double amount;
 	std::string eth_address;
-	int confirmations;
+	std::string eth_txid;
 }safe2eth;
 
 typedef std::map<std::string, safe2eth*> Safe2EthMap;
@@ -31,22 +37,6 @@ typedef std::map<std::string, safe2eth*>::const_iterator Safe2EthMapIterator;
 typedef std::vector<std::string> StringVec;
 
 
- 
-/**
- * #purpose    : 字符转十六进制
- * #note    : 不适用于汉字字符
- * #param ch    : 要转换成十六进制的字符
- * #return    : 接收转换后的字符串
- */
-std::string chToHex(unsigned char ch)
-{
-    const std::string hex = "0123456789ABCDEF";
- 
-    std::stringstream ss;
-    ss << hex[ch >> 4] << hex[ch & 0xf];
- 
-    return ss.str();
-}
  /*
 // C prototype : void StrToHex(byte *pbDest, char *pszSrc, int nLen)
 // parameter(s): [OUT] pbDest - 输出缓冲区
@@ -127,7 +117,7 @@ public:
 		std::cout << "Errors: " << info.errors << std::endl << std::endl;
 	}
 
-	bool GetBlockHashes(const int from_blocknumber,const int to_blocknumber,StringVec &ret) 
+	bool getBlockHashes(const int from_blocknumber,const int to_blocknumber,StringVec &ret) 
 	{
 		std::string hash;
 		int Count = 0;
@@ -137,12 +127,13 @@ public:
 
 		for(int i = from_blocknumber; i <= to_blocknumber; i++)
 		{
-			NO_THROW(hash = getblockhash(i),false);
+			THROW_RETURN(hash = getblockhash(i),false);
 			ret.push_back(hash);
 			percent = 100 *  Count/(to_blocknumber-from_blocknumber+1);
-			std::cout << "\rgetblcokhashes progress: " << percent << "%" << std::flush;
+			std::cout << "\rgetblockhashes progress: " << percent << "%" << std::flush;
 			Count++;
 		}
+		std::cout << "\rgetblockhashes progress: " << 100 << "%" << std::flush;
 		std::cout << std::endl;
 		return true;
 	}
@@ -184,27 +175,32 @@ public:
 	{
 		std::cout.precision(2);
 
+		int Count = 0;
+		double percent = 100 * Count / hashs.size();
+		std::cout << "\rgetSafe2EthList progress: " << percent << "%" << std::flush;
+
 		for(StringVec::const_iterator it_hash = hashs.begin(); it_hash != hashs.end(); it_hash++)
 		{
 			std::string hash = *it_hash;
 			blockinfo_t bc;
-			NO_THROW(bc = getblock(hash),0);
+			THROW_RETURN(bc = getblock(hash),0);
 			
 			//decode transactions
 			for(StringVec::const_iterator it_tx = bc.tx.begin(); it_tx != bc.tx.end(); it_tx++)//block hashs
 			{
 				safe_getrawtransaction_t raw_tx;
-				NO_THROW(raw_tx = safe_getrawtransaction(*it_tx,true),0);
+				THROW_RETURN(raw_tx = safe_getrawtransaction(*it_tx,true),0);
 
 				//if it is coinbase, then continue. we dont need coinbase tx.
 				if(raw_tx.vin.size() == 1 && raw_tx.vin[0].txid.empty()) continue;
 
 				//确认数量未到要求的min_confirms，则跳过。
 				if(raw_tx.confirmations < (unsigned int)min_confirms) continue;
-				
+
 				//vout 
 				for(std::vector<safe_vout_t> ::const_iterator it_vout = raw_tx.vout.begin(); it_vout != raw_tx.vout.end();it_vout++)
 				{
+
 					//如果发送的不是SAFE，或者有锁定时间，都跳过。
 					if(it_vout->txType != 1 || it_vout->nUnlockedHeight != 0) continue;
 
@@ -213,87 +209,274 @@ public:
 					{
 						std::string addr_recv = *it_addr;
 						std::string eth;
+
 						//如果对接地址对应，而且外带数据超过188个字节，有可能是我们要找的交易。
 						if(myAddr.compare(addr_recv) == 0 && getEthAddr(it_vout->reserve, eth))
-						{
+						{							
+							//获得该交易的上个交易，找到发送地址
+							safe_getrawtransaction_t vin_tx;
+							THROW_NO_RETURN(vin_tx = safe_getrawtransaction(raw_tx.vin[0].txid, true));
+
 							safe2eth* record = new safe2eth;
 							record->eth_address = eth;
 							record->txid = raw_tx.txid;
 							record->blockhash = raw_tx.blockhash;
-							record->safe_address = addr_recv;
+							record->safe_address = vin_tx.vout[raw_tx.vin[0].n].scriptPubKey.addresses[0];
 							record->amount = it_vout->value;
-							record->nVout = it_vout->n;
+							record->n = it_vout->n;
 							record->confirmations = raw_tx.confirmations;
+							record->blockindex = bc.height;
 							safemap[record->txid] = record;
 						}
 					}					
 				}
 			}
+			Count++;
+			percent = 100 * Count / hashs.size();
+			std::cout << "\rgetSafe2EthList progress: " << percent << "%" << std::flush;
 		}
-
+		std::cout << "\rgetSafe2EthList progress: 100%" << std::endl;
 		return true;
 	}
 };
 
-int main(int argc,char* argv[])
+int nBeginIndex = 2371250;
+std::string myAddress = "XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe";
+int need_confirms = 30;
+bool bExit = false;
+
+bool usage(int argc, char* argv[])
+{
+	printf("\n\nSafe2Eth: Transfer SAFE to the ETH network.\nUsage: safe2eth [address=XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe] [nBeginIndex=2371250]\n\n\n");
+	if (argc == 1) return true;
+	if (argc == 2)
+	{
+		myAddress = atoi(argv[1]);
+		printf("address: %s accepted.\n", myAddress.c_str());
+	}
+	if (argc == 3)
+	{
+		int nFromIndex = atoi(argv[2]);
+		if (nFromIndex > nBeginIndex)
+			nBeginIndex = nFromIndex;
+		else
+			printf("too small index: %d, should be larger than %d.\n", nFromIndex, nBeginIndex);
+
+		printf("blockchain index: %d accepted.\n", nBeginIndex);
+	}
+	if (argc > 3)
+	{
+		printf("error params count: %d, should be no more than %d. exit...\n", argc, 3);
+		return false;
+	}
+	return true;
+}
+
+int getBlockCount(safenode &node)
+{
+	int nBlockCount = 0;
+	do
+	{
+		THROW_RETURN(nBlockCount = node.getblockcount(), 0);
+		printf("current blockcount: %d\n", nBlockCount);
+
+		if (nBeginIndex >= nBlockCount)
+		{
+			printf("blockchain count: %d, beginIndex: %d, blockchain sync not completed, waiting for 5 minutes...\n", nBlockCount, nBeginIndex);
+			std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
+		}
+		
+	} while (nBeginIndex >= nBlockCount);
+
+	return nBlockCount;
+}
+
+bool updateDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
+{
+	char sqlBuff[4096] = { 0 };
+	sprintf(sqlBuff, "UPDATE %s SET confirmations = %d, eth_txid = '%s' WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.eth_txid.c_str(), eth.txid.c_str());
+	std::string sql = sqlBuff;
+	bool bRet = db.exec(sql, nullptr, nullptr);
+	if (!bRet)
+	{
+		printf("cann't update data to db: %s\n", eth.txid.c_str());
+	}
+	return bRet;
+}
+
+bool insertDB(mySQLiteDB &db,std::string tab,safe2eth& eth)
+{
+	char sqlBuff[4096] = { 0 };
+	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s');",tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
+		eth.blockindex,eth.blockhash.c_str(),eth.safe_address.c_str(),eth.eth_address.c_str(),eth.eth_txid.c_str());
+	std::string sql = sqlBuff;
+	bool bRet = db.exec(sql, nullptr, nullptr);
+	if(!bRet)
+	{
+		printf("cann't insert data to db: %s\n", eth.txid.c_str());
+	}
+
+	return updateDB(db,tab,eth);
+}
+
+
+int select_callback(void* data, int argc, char** argv, char** azColName)
+{
+	Safe2EthMap* psafe2ethMap = (Safe2EthMap*)data;
+	if (psafe2ethMap == nullptr) return 0;
+	if (9 != argc) return 0;
+
+	safe2eth* record = new safe2eth;
+	record->txid = argv[0];
+	record->n = atoi(argv[1]);
+	record->amount = atof(argv[2]);
+	record->confirmations = atoi(argv[3]);
+	record->blockindex = atoi(argv[4]);
+	record->blockhash = argv[5];
+	record->safe_address = argv[6];
+	record->eth_address = argv[7];
+	record->eth_txid = argv[8];
+
+	(*psafe2ethMap)[record->txid] = record;
+	return 0; 
+}
+
+bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap &safe2ethMap)
+{
+	std::string sql = "SELECT * FROM " + tab + "  WHERE eth_txid == '' OR eth_txid IS NULL;";
+	bool bRet = db.exec(sql, &select_callback, &safe2ethMap);
+	if (!bRet)
+	{
+		printf("cann't select data from db: %s, waiting for 5 minutes.\n", tab.c_str());
+	}
+	return bRet;
+}
+
+std::string send_safe2eth(double amount,std::string eth_address)
+{
+	std::string eth_txid = "test";
+	return eth_txid;
+}
+
+static int sendthread(mySQLiteDB& db, std::string &tab)
+{
+	Safe2EthMap safe2ethMap;
+	std::cout << "sendthread: preparing to send safe to eth...\n";
+
+	do {
+
+		while (!selectDB(db, tab, safe2ethMap))
+		{
+			printf("sendthread: error happened to selectDB: %s, waiting for 1 minutes\n", tab.c_str());
+			std::this_thread::sleep_for(std::chrono::milliseconds(1 * 60 * 1000));
+		}
+
+		std::cout << "sendthread: sending safe to eth, count: " << safe2ethMap.size() << std::endl;
+		for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
+		{
+			std::string eth_txid = send_safe2eth(it->second->amount, it->second->eth_address);
+			if (eth_txid.empty()) {
+				delete it->second;
+				continue;
+			}
+			it->second->eth_txid = eth_txid;
+
+			std::cout << "sendthread: txid: " << it->second->txid <<",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
+
+			bool bRet = updateDB(db, tab, *it->second);
+
+			if (!bRet) 
+				std::cout << "sendthread: cann't update to db: txid: " << it->second->txid << ", eth_txid:" << it->second->eth_txid << std::endl;
+
+			delete it->second;
+		}
+
+		safe2ethMap.clear();
+		std::cout << "sendthread: sleep_for 5 minutes, waiting for new tx...\n\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
+
+	} while (!bExit);
+
+	return 1;
+}
+
+
+static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, int& needed_confirms)
 {
 	safenode node;
-	int nBeginIndex = 2371250, nToIndex = 0;
-	int nBlockCount = 0 ;
-	std::string myAddress = "XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe";
-
-	printf("\n\nSafe2Eth: Transfer SAFE to the ETH network.\nUsage: safe2eth [nBeginIndex=2371250]\n\n\n");
-	if(argc == 2) 
-	{
-		int nFromIndex = atoi(argv[1]);
-		if(nFromIndex > nBeginIndex) 
-			nBeginIndex = nFromIndex;
-		else 
-			printf("too small index: %d, should be larger than %d.\n",nFromIndex,nBeginIndex);
-		
-		printf("blockchain index %d accepted.\n",nBeginIndex);
-	}
-	if(argc > 2)
-	{
-		printf("error params: %d, should be %d. exit...\n",argc,2);
-		return 0;
-	}
-
-	NO_THROW(nBlockCount = node.getblockcount(),0);
-	printf("current blockcount: %d\n",nBlockCount);
-
-	if(nBeginIndex >= nBlockCount)
-	{
-		printf("blockchain: %d, beginIndex: %d, blockchain sync not completed, exiting...\n",nBlockCount,nBeginIndex);
-		return 0;
-	}
-	
-	nToIndex = nBlockCount -1;
-
-	printf("getting blocks hashes %d, from: %d to %d\n",nToIndex-nBeginIndex + 1,nBeginIndex,nToIndex);
-	
-    StringVec hashs;
-	NO_THROW(node.GetBlockHashes(nBeginIndex,nToIndex,hashs),0);
-	
-	if(hashs.size() == 0)
-	{
-		printf("can't get required hashs, exiting...\n");
-		return 0;
-	}
-
-	if((int)hashs.size() != nToIndex - nBeginIndex + 1)
-	{
-		printf("warning: required hashs: %d, however we got %d hashs.\n",nToIndex - nBeginIndex+1,(int)hashs.size());
-	}
-	
 	Safe2EthMap safe2ethMap;
-
-	NO_THROW(node.getSafe2EthList(hashs, safe2ethMap, myAddress, 30),0);
-
-	for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
+	std::cout << "mainthread: preparing to get SAFEs ready to enter eth...\n";
+	while (!bExit)
 	{
-		std::cout << "txid: " << it->first << ", amount: " << it->second->amount << ",eth: " << it->second->eth_address << std::endl;
+		int nToIndex = getBlockCount(node) - 1;
+
+		printf("mainthread: getting blocks hashes %d, from: %d to %d\n", nToIndex - nBeginIndex + 1, nBeginIndex, nToIndex);
+
+		StringVec hashs;
+
+		while (hashs.size() == 0)
+		{
+			THROW_NO_RETURN(node.getBlockHashes(nBeginIndex, nToIndex, hashs));
+			if (hashs.size() == 0)
+			{
+				printf("mainthread: can't get required block hashs, waiting for 5 seconds...\n");
+				std::this_thread::sleep_for(std::chrono::milliseconds(5 * 1000));
+			}
+		}
+
+		if ((int)hashs.size() != nToIndex - nBeginIndex + 1)
+		{
+			printf("mainthread: warning: required hashs: %d, however we got %d hashs.\n", nToIndex - nBeginIndex + 1, (int)hashs.size());
+		}
+
+		THROW_NO_RETURN(node.getSafe2EthList(hashs, safe2ethMap, myAddress, needed_confirms));
+		std::cout << "mainthread: safe2eth count: " << safe2ethMap.size() << std::endl;
+		for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
+		{
+			bool bRet = insertDB(db, tab, *it->second);
+			if (bRet)
+				std::cout << "mainthread: blockindex:" << it->second->blockindex << ", txid: " << it->first << ", amount: " << it->second->amount << ", eth: " << it->second->eth_address << std::endl;
+			else
+				std::cout << "mainthread: insertDB error ,blockindex:" << it->second->blockindex << ", txid: " << it->first << std::endl;
+
+			delete it->second;
+		}
+
+		safe2ethMap.clear();
+		nBeginIndex = nToIndex + 1;
+		std::cout << "mainthread: sleep_for 5 minutes, waiting for new tx...\n\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
 	}
+
+	return 1;
+}
+
+int main(int argc,char* argv[])
+{
+	bool bRet = usage(argc,argv);
+	if (bRet == false) return 0;
+
+	std::string tab = "safe2eth";
+	std::string sql = "CREATE TABLE " + tab + "( \
+		txid			VARCHAR(64) PRIMARY KEY UNIQUE, \
+		n				INTEGER NOT NULL, \
+		amount			DOUBLE  NOT NULL, \
+		confirmations	INTEGER NOT NULL, \
+		blockindex		INTEGER NOT NULL, \
+		blockhash       VARCHAR(64), \
+		safe_address    VARCHAR(40), \
+		eth_address     VARCHAR(50), \
+		eth_txid		VARCHAR(64))";
+
+	mySQLiteDB db("safe2eth.db", tab, sql);
+
+	std::thread main(mainthread, std::ref(db), std::ref(tab), std::ref(myAddress), std::ref(need_confirms));
+	std::thread send(sendthread, std::ref(db), std::ref(tab));
+
+	if (main.joinable()) main.join();
+	if (send.joinable()) send.join();
+
+	db.close();
 
 	return 1;
 }
