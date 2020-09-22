@@ -37,7 +37,7 @@ typedef std::map<std::string, safe2eth*>::const_iterator Safe2EthMapIterator;
 typedef std::vector<std::string> StringVec;
 
 
- /*
+/*
 // C prototype : void StrToHex(byte *pbDest, char *pszSrc, int nLen)
 // parameter(s): [OUT] pbDest - 输出缓冲区
 //	[IN] pszSrc - 字符串
@@ -45,7 +45,7 @@ typedef std::vector<std::string> StringVec;
 // return value:
 // remarks : 将字符串转化为16进制数
 */
-void StrToHex(char*pbDest, const char *pszSrc, int nLen)
+void StrToHex(char* pbDest, const char* pszSrc, int nLen)
 {
 	char h1, h2;
 	char s1, s2;
@@ -53,19 +53,19 @@ void StrToHex(char*pbDest, const char *pszSrc, int nLen)
 	{
 		h1 = pszSrc[2 * i];
 		h2 = pszSrc[2 * i + 1];
- 
+
 		s1 = toupper(h1) - 0x30;
 		if (s1 > 9)
 			s1 -= 7;
- 
+
 		s2 = toupper(h2) - 0x30;
 		if (s2 > 9)
 			s2 -= 7;
- 
+
 		pbDest[i] = s1 * 16 + s2;
 	}
 }
- 
+
 /*
 // C prototype : void HexToStr(char *pszDest, byte *pbSrc, int nLen)
 // parameter(s): [OUT] pszDest - 存放目标字符串
@@ -74,7 +74,7 @@ void StrToHex(char*pbDest, const char *pszSrc, int nLen)
 // return value:
 // remarks : 将16进制数转化为字符串
 */
-void HexToStr(char *pszDest,const char*pbSrc, int nLen)
+void HexToStr(char* pszDest, const char* pbSrc, int nLen)
 {
 	char	ddl, ddh;
 	for (int i = 0; i < nLen; i++)
@@ -87,19 +87,19 @@ void HexToStr(char *pszDest,const char*pbSrc, int nLen)
 		pszDest[i * 2 + 1] = ddl;
 	}
 }
-	
+
 
 struct safenode : public SafeAPI
 {
 public:
 
-    safenode(std::string username = "safe", std::string password = "safe", std::string address = "127.0.0.1", int port = 5554): \
-		SafeAPI(username, password, address, port){ }
-    ~safenode() { }
+	safenode(std::string username = "safe", std::string password = "safe", std::string address = "127.0.0.1", int port = 5554) : \
+		SafeAPI(username, password, address, port) { }
+	~safenode() { }
 
 	void outputInfo(getinfo_t info)
 	{
-		std::cout <<  "=== getinfo ===" << std::endl;
+		std::cout << "=== getinfo ===" << std::endl;
 		std::cout << "Version: " << info.version << std::endl;
 		std::cout << "Protocol Version: " << info.protocolversion << std::endl;
 		std::cout << "Wallet Version: " << info.walletversion << std::endl;
@@ -117,19 +117,19 @@ public:
 		std::cout << "Errors: " << info.errors << std::endl << std::endl;
 	}
 
-	bool getBlockHashes(const int from_blocknumber,const int to_blocknumber,StringVec &ret) 
+	bool getBlockHashes(const int from_blocknumber, const int to_blocknumber, StringVec& ret)
 	{
 		std::string hash;
 		int Count = 0;
 		double percent = 0.0;
-		 
+
 		std::cout.precision(2);
 
-		for(int i = from_blocknumber; i <= to_blocknumber; i++)
+		for (int i = from_blocknumber; i <= to_blocknumber; i++)
 		{
-			THROW_RETURN(hash = getblockhash(i),false);
+			THROW_RETURN(hash = getblockhash(i), false);
 			ret.push_back(hash);
-			percent = 100 *  Count/(to_blocknumber-from_blocknumber+1);
+			percent = 100 * Count / (to_blocknumber - from_blocknumber + 1);
 			std::cout << "\rgetblockhashes progress: " << percent << "%" << std::flush;
 			Count++;
 		}
@@ -138,27 +138,27 @@ public:
 		return true;
 	}
 
-	bool getEthAddr(const std::string & addString, std::string& eth)
+	bool getEthAddr(const std::string& addString, std::string& eth)
 	{
 		if (addString.size() < 188) return false;
 		int skipLen = 48;
 
-		char* buff [3000];
-		memset(buff,0,3000);
+		char* buff[3000];
+		memset(buff, 0, 3000);
 
-		StrToHex((char*)buff, addString.c_str(), addString.size()/2);
+		StrToHex((char*)buff, addString.c_str(), addString.size() / 2);
 		char* eth_addr = (char*)buff + skipLen;
 
 		//需要有ETH：这四个关键字，后面跟着ETH地址；
 		if (memcmp(eth_addr, "eth:", 4) != 0)
 		{
-			std::cout << "getEthAddr: eth error: "<<eth_addr << std::endl;
+			std::cout << "getEthAddr: eth error: " << eth_addr << std::endl;
 			return false;
 		}
 		eth_addr = (char*)(eth_addr + 4);
 
 		//去除前面和后面可能的空格
-		while (*eth_addr == 20) { *eth_addr = 0; eth_addr++;}
+		while (*eth_addr == 20) { *eth_addr = 0; eth_addr++; }
 
 		if (memcmp(eth_addr, "0x", 2) != 0 || strlen(eth_addr) != 42)
 		{
@@ -171,7 +171,7 @@ public:
 		return true;
 	}
 
-	bool getSafe2EthList(const StringVec &hashs,Safe2EthMap &safemap,const std::string & myAddr, const int min_confirms)
+	bool getSafe2EthList(const StringVec& hashs, Safe2EthMap& safemap, const std::string& myAddr, const int min_confirms)
 	{
 		std::cout.precision(2);
 
@@ -179,40 +179,40 @@ public:
 		double percent = 100 * Count / hashs.size();
 		std::cout << "\rgetSafe2EthList progress: " << percent << "%" << std::flush;
 
-		for(StringVec::const_iterator it_hash = hashs.begin(); it_hash != hashs.end(); it_hash++)
+		for (StringVec::const_iterator it_hash = hashs.begin(); it_hash != hashs.end(); it_hash++)
 		{
 			std::string hash = *it_hash;
 			blockinfo_t bc;
-			THROW_RETURN(bc = getblock(hash),0);
-			
+			THROW_RETURN(bc = getblock(hash), 0);
+
 			//decode transactions
-			for(StringVec::const_iterator it_tx = bc.tx.begin(); it_tx != bc.tx.end(); it_tx++)//block hashs
+			for (StringVec::const_iterator it_tx = bc.tx.begin(); it_tx != bc.tx.end(); it_tx++)//block hashs
 			{
 				safe_getrawtransaction_t raw_tx;
-				THROW_RETURN(raw_tx = safe_getrawtransaction(*it_tx,true),0);
+				THROW_RETURN(raw_tx = safe_getrawtransaction(*it_tx, true), 0);
 
 				//if it is coinbase, then continue. we dont need coinbase tx.
-				if(raw_tx.vin.size() == 1 && raw_tx.vin[0].txid.empty()) continue;
+				if (raw_tx.vin.size() == 1 && raw_tx.vin[0].txid.empty()) continue;
 
 				//确认数量未到要求的min_confirms，则跳过。
-				if(raw_tx.confirmations < (unsigned int)min_confirms) continue;
+				if (raw_tx.confirmations < (unsigned int)min_confirms) continue;
 
 				//vout 
-				for(std::vector<safe_vout_t> ::const_iterator it_vout = raw_tx.vout.begin(); it_vout != raw_tx.vout.end();it_vout++)
+				for (std::vector<safe_vout_t> ::const_iterator it_vout = raw_tx.vout.begin(); it_vout != raw_tx.vout.end(); it_vout++)
 				{
 
 					//如果发送的不是SAFE，或者有锁定时间，都跳过。
-					if(it_vout->txType != 1 || it_vout->nUnlockedHeight != 0) continue;
+					if (it_vout->txType != 1 || it_vout->nUnlockedHeight != 0) continue;
 
-					StringVec * pVec = (StringVec*)&((*it_vout).scriptPubKey.addresses);
-					for(StringVec::const_iterator it_addr = pVec->begin(); it_addr != pVec->end(); it_addr++)//
+					StringVec* pVec = (StringVec*)&((*it_vout).scriptPubKey.addresses);
+					for (StringVec::const_iterator it_addr = pVec->begin(); it_addr != pVec->end(); it_addr++)//
 					{
 						std::string addr_recv = *it_addr;
 						std::string eth;
 
 						//如果对接地址对应，而且外带数据超过188个字节，有可能是我们要找的交易。
-						if(myAddr.compare(addr_recv) == 0 && getEthAddr(it_vout->reserve, eth))
-						{							
+						if (myAddr.compare(addr_recv) == 0 && getEthAddr(it_vout->reserve, eth))
+						{
 							//获得该交易的上个交易，找到发送地址
 							safe_getrawtransaction_t vin_tx;
 							THROW_NO_RETURN(vin_tx = safe_getrawtransaction(raw_tx.vin[0].txid, true));
@@ -228,14 +228,14 @@ public:
 							record->blockindex = bc.height;
 							safemap[record->txid] = record;
 						}
-					}					
+					}
 				}
 			}
 			Count++;
 			percent = 100 * Count / hashs.size();
 			std::cout << "\rgetSafe2EthList progress: " << percent << "%" << std::flush;
 		}
-		std::cout << "\rgetSafe2EthList progress: 100%" << std::endl;
+		std::cout << "\rgetSafe2EthList progress: 100%   " << std::endl;
 		return true;
 	}
 };
@@ -272,7 +272,7 @@ bool usage(int argc, char* argv[])
 	return true;
 }
 
-int getBlockCount(safenode &node)
+int getBlockCount(safenode& node)
 {
 	int nBlockCount = 0;
 	do
@@ -285,7 +285,7 @@ int getBlockCount(safenode &node)
 			printf("blockchain count: %d, beginIndex: %d, blockchain sync not completed, waiting for 5 minutes...\n", nBlockCount, nBeginIndex);
 			std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
 		}
-		
+
 	} while (nBeginIndex >= nBlockCount);
 
 	return nBlockCount;
@@ -294,7 +294,10 @@ int getBlockCount(safenode &node)
 bool updateDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 {
 	char sqlBuff[4096] = { 0 };
-	sprintf(sqlBuff, "UPDATE %s SET confirmations = %d, eth_txid = '%s' WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.eth_txid.c_str(), eth.txid.c_str());
+	if (eth.eth_txid.empty())
+		sprintf(sqlBuff, "UPDATE %s SET confirmations = %d WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.txid.c_str());
+	else
+		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s' WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.txid.c_str());
 	std::string sql = sqlBuff;
 	bool bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
@@ -304,27 +307,46 @@ bool updateDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	return bRet;
 }
 
-bool insertDB(mySQLiteDB &db,std::string tab,safe2eth& eth)
+int insert_callback(void* data, int argc, char** argv, char** azColName)
 {
+	if (argc == 1)
+	{
+		int* nRow = (int*)data;
+		*nRow = atoi(argv[0]);
+	}
+	return 0;
+}
+bool insertDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
+{
+	std::string sql = "SELECT count(txid) AS count FROM " + tab + "  WHERE txid == '" + eth.txid + "';";
+	int nRow = 0;
+	bool bRet = db.exec(sql, &insert_callback, &nRow);
+	if (!bRet)
+	{
+		std::cout << "cann't select count from db: " << eth.txid.c_str() << std::endl;
+	}
+
+	if (nRow != 0) //已经有该交易ID，则更新确认数
+		return updateDB(db, tab, eth);
+
+	//没有该交易ID则插入整行数据
 	char sqlBuff[4096] = { 0 };
-	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s');",tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
-		eth.blockindex,eth.blockhash.c_str(),eth.safe_address.c_str(),eth.eth_address.c_str(),eth.eth_txid.c_str());
-	std::string sql = sqlBuff;
-	bool bRet = db.exec(sql, nullptr, nullptr);
-	if(!bRet)
+	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s');", tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
+		eth.blockindex, eth.blockhash.c_str(), eth.safe_address.c_str(), eth.eth_address.c_str(), eth.eth_txid.c_str());
+	sql = sqlBuff;
+	bRet = db.exec(sql, nullptr, nullptr);
+	if (!bRet)
 	{
 		printf("cann't insert data to db: %s\n", eth.txid.c_str());
 	}
-
-	return updateDB(db,tab,eth);
+	return bRet;
 }
-
 
 int select_callback(void* data, int argc, char** argv, char** azColName)
 {
 	Safe2EthMap* psafe2ethMap = (Safe2EthMap*)data;
 	if (psafe2ethMap == nullptr) return 0;
-	if (9 != argc) return 0;
+	if (argc != 9) return 0;
 
 	safe2eth* record = new safe2eth;
 	record->txid = argv[0];
@@ -338,10 +360,10 @@ int select_callback(void* data, int argc, char** argv, char** azColName)
 	record->eth_txid = argv[8];
 
 	(*psafe2ethMap)[record->txid] = record;
-	return 0; 
+	return 0;
 }
 
-bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap &safe2ethMap)
+bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap& safe2ethMap)
 {
 	std::string sql = "SELECT * FROM " + tab + "  WHERE eth_txid == '' OR eth_txid IS NULL;";
 	bool bRet = db.exec(sql, &select_callback, &safe2ethMap);
@@ -352,16 +374,16 @@ bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap &safe2ethMap)
 	return bRet;
 }
 
-std::string send_safe2eth(double amount,std::string eth_address)
+std::string send_safe2eth(double amount, std::string eth_address)
 {
 	std::string eth_txid = "test";
 	return eth_txid;
 }
 
-static int sendthread(mySQLiteDB& db, std::string &tab)
+static int sendthread(mySQLiteDB& db, std::string& tab)
 {
 	Safe2EthMap safe2ethMap;
-	std::cout << "sendthread: preparing to send safe to eth...\n";
+	std::cout << "\nsendthread: preparing to send safe to eth...\n";
 
 	do {
 
@@ -381,11 +403,11 @@ static int sendthread(mySQLiteDB& db, std::string &tab)
 			}
 			it->second->eth_txid = eth_txid;
 
-			std::cout << "sendthread: txid: " << it->second->txid <<",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
+			std::cout << "sendthread: txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
 
 			bool bRet = updateDB(db, tab, *it->second);
 
-			if (!bRet) 
+			if (!bRet)
 				std::cout << "sendthread: cann't update to db: txid: " << it->second->txid << ", eth_txid:" << it->second->eth_txid << std::endl;
 
 			delete it->second;
@@ -405,7 +427,7 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 {
 	safenode node;
 	Safe2EthMap safe2ethMap;
-	std::cout << "mainthread: preparing to get SAFEs ready to enter eth...\n";
+	std::cout << "\nmainthread: preparing to get SAFEs ready to enter eth...\n";
 	while (!bExit)
 	{
 		int nToIndex = getBlockCount(node) - 1;
@@ -443,7 +465,7 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 		}
 
 		safe2ethMap.clear();
-		nBeginIndex = nToIndex + 1;
+		nBeginIndex = nToIndex - needed_confirms;
 		std::cout << "mainthread: sleep_for 5 minutes, waiting for new tx...\n\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
 	}
@@ -451,9 +473,9 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 	return 1;
 }
 
-int main(int argc,char* argv[])
+int main(int argc, char* argv[])
 {
-	bool bRet = usage(argc,argv);
+	bool bRet = usage(argc, argv);
 	if (bRet == false) return 0;
 
 	std::string tab = "safe2eth";
