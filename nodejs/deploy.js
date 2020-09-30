@@ -54,4 +54,4 @@ async function deploy(bytecode, abi)
 }
 
 module.exports.deploy  = deploy
-module.exports.complie = complie
+module.exports.compile = compile
