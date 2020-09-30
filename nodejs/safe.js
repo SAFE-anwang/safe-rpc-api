@@ -185,7 +185,7 @@ class SAFE extends web3.eth.Contract
 		}
 }
 
-var res = await initSAFE('safe.sol')
+var res = initSAFE('safe.sol')
 var safe = new SAFE(abi,addr)
 
 module.exports = safe
