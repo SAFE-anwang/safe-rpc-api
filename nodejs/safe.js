@@ -31,7 +31,7 @@ class SAFE extends web3.eth.Contract
 
 	ver()
 	{
-		console.log('web3 version:',web3.version);
+		console.log('web3 version:',web3.version)
 	}
 	async deploy(sol)
 	{
@@ -67,12 +67,12 @@ class SAFE extends web3.eth.Contract
 
 	mod ()
 	{
-		console.log('modules: '+ web3.modules);
+		console.log('modules: '+ web3.modules)
 	}
 
 	utils()
 	{
-		console.log('utils:' + web3.utils);
+		console.log('utils:' + web3.utils)
 	}
 	gasprice()
 	{

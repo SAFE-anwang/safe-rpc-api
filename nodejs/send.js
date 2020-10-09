@@ -30,7 +30,7 @@ var BigNumber = require('bignumber.js');
 
 async function safe2eth(to,amount,fee)
 {
-	safe.ver();
+	//safe.ver();
 	let accounts = await web3.eth.getAccounts()
 	await web3.eth.personal.unlockAccount(accounts[0],'12345')
 	//await burnAll();
