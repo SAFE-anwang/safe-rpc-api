@@ -175,6 +175,8 @@ class SAFE extends web3.eth.Contract
 }
 
 let{abi,addr} = initSAFE()
+console.log("abi: ",abi)
+console.log("addr: ",addr)
 var safe = new SAFE(abi,addr)
 
 module.exports = safe
