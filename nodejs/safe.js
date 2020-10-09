@@ -10,12 +10,12 @@ async function initSAFE(sol)
    var abi,addr
    try{
 		
-		abi  = fs.readFileSync('safe.abi','utf-8');
-		addr = fs.readFileSync('safe.addr','utf-8');
+		abi  = fs.readFileSync('safe.abi','utf-8')
+		addr = fs.readFileSync('safe.addr','utf-8')
 	}
 	catch(e)
 	{
-		console.log('compile and deploy SAFE Contract.');
+		console.log('safe.abi and safe.addr dont exist, so going to compile and deploy SAFE Contract...')
 
 		if(abi == null || abi == undefined)
 		{
@@ -33,9 +33,11 @@ async function initSAFE(sol)
 				return
 				}
 		
-			fs.writeFileSync('safe.abi', abi);
-			fs.writeFileSync('safe.addr',addr);
-			fs.writeFileSync('safe.bytecode',bytecode);
+			fs.writeFileSync('safe.abi', abi)
+			fs.writeFileSync('safe.addr',addr)
+			fs.writeFileSync('safe.bytecode',bytecode)
+
+			console.log('SAFE contract created successfully, save to safe.abi , safe.addr and safe.bytecode')
 		}
 	}
 
