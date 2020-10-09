@@ -422,7 +422,7 @@ std::string send_safe2eth(double value, std::string& dst)
 	Json::Value params;
 
 	params.append(dst);
-	double fee = 5;
+	double fee = 0.5;
 	double amount = value - fee;
 	params.append(amount);
 	params.append(fee);

@@ -8,7 +8,6 @@ var BigNumber = require('bignumber.js');
 		{
 			let accounts = await web3.eth.getAccounts()
 			await web3.eth.personal.unlockAccount(accounts[0],'12345')
-			await web3.eth.personal.unlockAccount(accounts[0],'12345')
 
 			var amount = await safe.balanceOf(accounts[0])
 			if(amount > 0)
@@ -18,16 +17,6 @@ var BigNumber = require('bignumber.js');
 					value: 0,
 				})
 				console.log("res1:", res)
-			}
-
-			amount = await safe.balanceOf(accounts[1])
-			if(amount > 0)
-			{
-				res = await safe.methods.burn(amount).send({
-					from: accounts[1],
-					value: 0,
-				})
-				console.log("res2:", res)
 			}
 			
 		}
@@ -44,7 +33,6 @@ async function safe2eth(to,amount,fee)
 	safe.ver();
 	let accounts = await web3.eth.getAccounts()
 	await web3.eth.personal.unlockAccount(accounts[0],'12345')
-	await web3.eth.personal.unlockAccount(accounts[1],'12345')
 	//await burnAll();
 	
 	var one = new BigNumber(Math.pow(10,await safe.decimals()));
