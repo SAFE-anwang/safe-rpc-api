@@ -52,5 +52,35 @@ async function deploy(bytecode, abi)
 		}
 }
 
-module.exports.deploy  = deploy
-module.exports.compile = compile
+async function createSAFE(sol)
+{
+	console.log('compile SAFE Contract...')
+
+	let {bytecode, abi} = compile(sol)
+
+	if(abi == null|| abi == undefined) 
+	{
+		console.log("complie: abi is empty")
+		return
+	}
+	
+	console.log('deploy SAFE Contract...')
+	addr = await deploy(bytecode, abi)
+		
+	if(addr == null|| addr == undefined) 
+	{
+		console.log("deploy: addr is empty")
+		return
+	}
+		
+	fs.writeFileSync('safe.abi', abi)
+	fs.writeFileSync('safe.addr',addr)
+	fs.writeFileSync('safe.bytecode',bytecode)
+
+	console.log('SAFE contract created successfully, save to safe.abi , safe.addr and safe.bytecode')
+	return [abi,addr]
+}
+
+module.exports.createSAFE  = createSAFE
+
+createSAFE('safe.sol')
