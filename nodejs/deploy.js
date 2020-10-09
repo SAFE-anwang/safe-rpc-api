@@ -20,7 +20,6 @@ function compile(sol)
 
 async function deploy(bytecode, abi)
 {
-
 	var address = ''
 
 		try
