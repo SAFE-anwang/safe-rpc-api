@@ -16,22 +16,19 @@ async function initSAFE(sol)
 	catch(e)
 	{
 		console.log('compile and deploy SAFE Contract.');
-		console.log('abi:',abi);
-		console.log('addr:',addr);
 
-		if(abi == null || addr == null)
+		if(abi == null || abi == undefined)
 		{
 			let {bytecode, abi} = compile(sol)
-			console.log('abi:',abi);
-			console.log('addr:',addr);
-			if(abi == null) {
+
+			if(abi == null|| abi == undefined) {
 				console.log("complie: abi is empty")
 				return
 				}
 		
 			addr = await deploy(bytecode, abi)
 		
-			if(addr == null) {
+			if(addr == null|| addr == undefined) {
 				console.log("deploy: addr is empty")
 				return
 				}
@@ -41,8 +38,7 @@ async function initSAFE(sol)
 			fs.writeFileSync('safe.bytecode',bytecode);
 		}
 	}
-	console.log('abi:',abi);
-	console.log('addr:',addr);
+
 	return [abi,addr]
 }
 
