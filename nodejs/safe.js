@@ -12,12 +12,13 @@ async function initSAFE(sol)
 		
 		abi  = fs.readFileSync('safe.abi','utf-8');
 		addr = fs.readFileSync('safe.addr','utf-8');
-
-
 	}
 	catch(e)
 	{
 		console.log('compile and deploy SAFE Contract.');
+		console.log('abi:',abi);
+		console.log('addr:',addr);
+
 		if(abi == null || addr == null)
 		{
 			let {bytecode, abi} = compile(sol)
