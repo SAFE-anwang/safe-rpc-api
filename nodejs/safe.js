@@ -29,7 +29,7 @@ class SAFE extends web3.eth.Contract
 	  this.listen2event()
 	}
 
-	ver()
+	function ver()
 	{
 		console.log('web3 version:',web3.version)
 	}
@@ -50,7 +50,7 @@ class SAFE extends web3.eth.Contract
 		return await this.methods.owner().call()
 	}
 
-	async decimals()
+	async function decimals()
 	{
 		return await this.methods.decimals().call()
 	}
@@ -65,16 +65,16 @@ class SAFE extends web3.eth.Contract
 		return await this.methods.balanceOf(addr).call()
 	}
 
-	mod ()
+	function mod ()
 	{
 		console.log('modules: '+ web3.modules)
 	}
 
-	utils()
+	function utils()
 	{
 		console.log('utils:' + web3.utils)
 	}
-	gasprice()
+	function gasprice()
 	{
 		console.log(web3.eth.gasPrice)
 		return  web3.eth.gasPrice

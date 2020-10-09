@@ -30,12 +30,12 @@ var BigNumber = require('bignumber.js');
 
 async function safe2eth(to,amount,fee)
 {
-	//safe.ver();
+	safe.ver;
 	let accounts = await web3.eth.getAccounts()
 	await web3.eth.personal.unlockAccount(accounts[0],'12345')
 	//await burnAll();
 	
-	var one = new BigNumber(Math.pow(10,await safe.decimals()));
+	var one = new BigNumber(Math.pow(10,await safe.decimals));
 
 	var myamount = new BigNumber(amount * one)
 	var myfee = new BigNumber(fee * one)
