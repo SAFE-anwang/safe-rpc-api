@@ -5,7 +5,7 @@ let {compile,deploy} = require('./deploy')
 //var addr = "0x9ef95776601da991363a7a09667618f9ffff0bd6"
 
 
-async function initSAFE()
+function initSAFE()
 {
    var fs   = require('fs');
    var abi,addr
