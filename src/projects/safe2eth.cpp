@@ -13,6 +13,17 @@
 #include<chrono>
 #include<thread>
 
+#include <jsonrpccpp/client.h>
+#include <jsonrpccpp/client/connectors/httpclient.h>
+
+using jsonrpc::Client;
+using jsonrpc::JSONRPC_CLIENT_V2;
+
+using jsonrpc::HttpClient;
+using jsonrpc::JsonRpcException;
+
+using Json::Value;
+using Json::ValueIterator;
 
 #define THROW_RETURN(METHOD,RET)  try {(METHOD);} catch (BitcoinException& e) {           \
 							 std::cout << "Error (" << e.getCode() << "): "<< e.getMessage() << std::endl; return RET;}
@@ -373,11 +384,63 @@ bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap& safe2ethMap)
 	}
 	return bRet;
 }
+/*
+request:
 
-std::string send_safe2eth(double amount, std::string eth_address)
 {
-	std::string eth_txid = "test";
-	return eth_txid;
+"jsonrpc":"2.0",
+"id":"1",
+"method":"safe2eth",
+"params":
+ {
+	"dst":"0x9eF95776601dA991363a7A09667618f9FFFF0BD6",
+	"amount":1000,
+	"fee":10
+ }
+}
+
+result:
+
+{
+	"jsonrpc": "2.0",
+	"id": "1",
+	"result": [
+		"0xec51566f478a619e5057cc32ed1f1e61fddbf5d85fbe2f994cfc48404d5f5ebe",
+		67425,
+		"0x13f42507703b8ac6dcb67b54e1295158f9e41505875a285438b9ca61887250c4",
+		160
+	]
+}
+*/
+std::string send_safe2eth(double value, std::string& dst)
+{
+	HttpClient* httpClient = new HttpClient("http://127.0.0.1:50505");
+	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
+	httpClient->SetTimeout(5000);
+
+	std::string command = "safe2eth";
+	Json::Value params;
+
+	params.append(dst);
+	double fee = 5;
+	double amount = value - fee;
+	params.append(amount);
+	params.append(fee);
+
+	Value result;
+	try
+	{
+		std::cout << "\nCallMethod...command: " << command << ",params: " << params <<std::endl;
+		result = client->CallMethod(command, params);
+	}
+	catch (JsonRpcException& e)
+	{
+		BitcoinException err(e.GetCode(), e.GetMessage());
+		throw err;
+	}
+	delete client;
+	delete httpClient;
+	return result[0].asString();
 }
 
 static int sendthread(mySQLiteDB& db, std::string& tab)
@@ -385,39 +448,37 @@ static int sendthread(mySQLiteDB& db, std::string& tab)
 	Safe2EthMap safe2ethMap;
 	std::cout << "\nsendthread: preparing to send safe to eth...\n";
 
-	do {
+	if (!selectDB(db, tab, safe2ethMap))
+	{
+		printf("sendthread: error happened to selectDB: %s, waiting for 1 minutes\n", tab.c_str());
+		//std::this_thread::sleep_for(std::chrono::milliseconds(1 * 60 * 1000));
+		return 0;
+	}
 
-		while (!selectDB(db, tab, safe2ethMap))
-		{
-			printf("sendthread: error happened to selectDB: %s, waiting for 1 minutes\n", tab.c_str());
-			std::this_thread::sleep_for(std::chrono::milliseconds(1 * 60 * 1000));
-		}
-
-		std::cout << "sendthread: sending safe to eth, count: " << safe2ethMap.size() << std::endl;
-		for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
-		{
-			std::string eth_txid = send_safe2eth(it->second->amount, it->second->eth_address);
-			if (eth_txid.empty()) {
-				delete it->second;
-				continue;
-			}
-			it->second->eth_txid = eth_txid;
-
-			std::cout << "sendthread: txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
-
-			bool bRet = updateDB(db, tab, *it->second);
-
-			if (!bRet)
-				std::cout << "sendthread: cann't update to db: txid: " << it->second->txid << ", eth_txid:" << it->second->eth_txid << std::endl;
-
+	std::cout << "sendthread: sending safe to eth, count: " << safe2ethMap.size() << std::endl;
+	for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
+	{
+		std::string eth_txid = send_safe2eth(it->second->amount, it->second->eth_address);
+		if (eth_txid.empty()) {
 			delete it->second;
+			continue;
 		}
+		it->second->eth_txid = eth_txid;
 
-		safe2ethMap.clear();
-		std::cout << "sendthread: sleep_for 5 minutes, waiting for new tx...\n\n";
-		std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
+		std::cout << "sendthread: txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
 
-	} while (!bExit);
+		bool bRet = updateDB(db, tab, *it->second);
+
+		if (!bRet)
+			std::cout << "sendthread: cann't update to db: txid: " << it->second->txid << ", eth_txid:" << it->second->eth_txid << std::endl;
+
+		delete it->second;
+	}
+
+	safe2ethMap.clear();
+	std::cout << "sendthread: exiting...\n\n";
+	//std::cout << "sendthread: sleep_for 5 minutes, waiting for new tx...\n\n";
+	//std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
 
 	return 1;
 }
@@ -464,8 +525,15 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 			delete it->second;
 		}
 
+		if (safe2ethMap.size())
+		{
+			std::cout << "mainthread: start sendthread...\n";
+			std::thread send(sendthread, std::ref(db), std::ref(tab));
+			if (send.joinable()) send.join();
+		}
 		safe2ethMap.clear();
 		nBeginIndex = nToIndex - needed_confirms;
+
 		std::cout << "mainthread: sleep_for 5 minutes, waiting for new tx...\n\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
 	}
@@ -493,10 +561,8 @@ int main(int argc, char* argv[])
 	mySQLiteDB db("safe2eth.db", tab, sql);
 
 	std::thread main(mainthread, std::ref(db), std::ref(tab), std::ref(myAddress), std::ref(need_confirms));
-	std::thread send(sendthread, std::ref(db), std::ref(tab));
 
 	if (main.joinable()) main.join();
-	if (send.joinable()) send.join();
 
 	db.close();
 
