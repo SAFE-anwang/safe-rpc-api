@@ -27,9 +27,8 @@ async function createSAFE(sol)
 	fs.writeFileSync('safe.abi', abi)
 	fs.writeFileSync('safe.addr',addr)
 	fs.writeFileSync('safe.bytecode',bytecode)
-
+	return [abi,addr]
 	console.log('SAFE contract created successfully, save to safe.abi , safe.addr and safe.bytecode')
-
 }
 async function initSAFE(sol)
 {
@@ -200,7 +199,7 @@ class SAFE extends web3.eth.Contract
 		}
 }
 
-let{abi,addr} = initSAFE('safe.sol')
+let{abi,addr} = createSAFE('safe.sol')
 var safe = new SAFE(abi,addr)
 
 module.exports = safe
