@@ -1,18 +1,17 @@
 //导入solc编译器
 var solc = require('solc')
 var web3 = require('./web3')
-//var fs = require('fs');
+let fs = require('fs')
 
 function compile(sol)
 {
 	//读取合约
-	let fs = require('fs')
-	let sourceCode = fs.readFileSync(sol)
+	let sourceCode = fs.readFileSync(sol,'utf-8').toString()
 
-	let output = solc.compile(sourceCode, 1)
-	console.log('output:', output)
+	let output = solc.compile(sourceCode)
+	//console.log('output:', output)
 
-	console.log('abi:______',output['contracts'][':SimpleStorage']['interface'])
+	//console.log('abi:______',output['contracts'][':SimpleStorage']['interface'])
 
 	//导出合约
 	return output['contracts'][':SimpleStorage']
@@ -25,7 +24,8 @@ async function deploy(bytecode, abi)
 		try
 		{
 			//此地址需要使用地址
-			const account = await web3.eth.getAccounts()
+			const accounts = await web3.eth.getAccounts()
+			await web3.eth.personal.unlockAccount(accounts[0],'12345')
 
 			//1.拼接合约数据interface
 			let contract = new web3.eth.Contract(JSON.parse(abi))
@@ -34,12 +34,12 @@ async function deploy(bytecode, abi)
 			    data: bytecode,//合约的bytecode
 			    arguments: []//给构造函数传递参数，使用数组
 			}).send({
-			    from:account,
+			    from:accounts[0],
 			    gas:'3000000',
 			    gasPrice:'1',
 			}).then(instance =>{
 			    console.log('address:',instance.options.address)
-			    address = instance.options.address
+			    fs.writeFileSync('safe.addr',instance.options.address)
 			})
 			
 			return address
@@ -52,18 +52,12 @@ async function deploy(bytecode, abi)
 		}
 }
 
-async function createSAFE(sol)
+async function createSAFE()
 {
-	console.log('compile SAFE Contract...')
+	console.log('load SAFE Contract abi and bytecode...')
+	var abi  = fs.readFileSync('safe.abi','utf-8').toString()
+	var bytecode = fs.readFileSync('safe.bin','utf-8')
 
-	let {bytecode, abi} = compile(sol)
-
-	if(abi == null|| abi == undefined) 
-	{
-		console.log("complie: abi is empty")
-		return
-	}
-	
 	console.log('deploy SAFE Contract...')
 	addr = await deploy(bytecode, abi)
 		
@@ -73,14 +67,10 @@ async function createSAFE(sol)
 		return
 	}
 		
-	fs.writeFileSync('safe.abi', abi)
-	fs.writeFileSync('safe.addr',addr)
-	fs.writeFileSync('safe.bytecode',bytecode)
-
-	console.log('SAFE contract created successfully, save to safe.abi , safe.addr and safe.bytecode')
+	console.log('SAFE contract created successfully')
 	return [abi,addr]
 }
 
 module.exports.createSAFE  = createSAFE
 
-createSAFE('safe.sol')
+createSAFE()

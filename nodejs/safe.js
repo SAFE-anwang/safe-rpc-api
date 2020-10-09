@@ -174,18 +174,7 @@ class SAFE extends web3.eth.Contract
 		}
 }
 
-var safe,abi,addr
-
 let{abi,addr} = initSAFE()
-
-if(abi == null|| abi == undefined) 
-{
-	{abi,addr} = createSAFE('safe.sol')
-	safe = new SAFE(abi,addr)
-}
-else
-{
-   safe = new SAFE(abi,addr)
-}
+var safe = new SAFE(abi,addr)
 
 module.exports = safe
