@@ -13,14 +13,16 @@ async function initSAFE(sol)
 		abi  = fs.readFileSync('safe.abi','utf-8');
 		addr = fs.readFileSync('safe.addr','utf-8');
 
-		console.log('abi:',abi);
-		console.log('addr:',addr);
+
 	}
 	catch(e)
 	{
+		console.log('compile and deploy SAFE Contract.');
 		if(abi == null || addr == null)
 		{
 			let {bytecode, abi} = compile(sol)
+			console.log('abi:',abi);
+			console.log('addr:',addr);
 			if(abi == null) {
 				console.log("complie: abi is empty")
 				return
@@ -38,7 +40,8 @@ async function initSAFE(sol)
 			fs.writeFileSync('safe.bytecode',bytecode);
 		}
 	}
-
+	console.log('abi:',abi);
+	console.log('addr:',addr);
 	return [abi,addr]
 }
 
