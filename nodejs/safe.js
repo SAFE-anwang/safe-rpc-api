@@ -131,7 +131,7 @@ class SAFE extends web3.eth.Contract
 		var owner = await this.unlock()
 		try
 		{
-			var res = await this.methods.safe2eth(to,amount,fee).send({
+			var res = await this.methods.safe2eth(to,amount,fee).encodeABI().send({
 				from: owner,
 				value: 0,
 			})
