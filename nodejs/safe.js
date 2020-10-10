@@ -26,7 +26,15 @@ class SAFE extends web3.eth.Contract
 	constructor(abi,addr)
 	{
 	  super(abi,addr)
+	  await unlock()
 	  this.listen2event()
+	}
+
+	async unlock()
+	{
+		var owner = await this.owner()
+		await web3.eth.personal.unlockAccount(owner,'12345')
+		return owner
 	}
 
 	ver()
@@ -95,7 +103,7 @@ class SAFE extends web3.eth.Contract
 	{
 		try
 		{
-			var owner = await this.owner()
+			var owner = await this.unlock()
 
 			console.log("name:", await this.name())
 			console.log("symbol:", await this.symbol())
@@ -113,8 +121,7 @@ class SAFE extends web3.eth.Contract
 
 	async safe2eth(to,amount,fee)
 	{
-		//let accounts = await web3.eth.getAccounts()
-		var owner = await this.owner()
+		var owner = await this.unlock()
 		await web3.eth.personal.unlockAccount(owner,'12345')
 		try
 		{
