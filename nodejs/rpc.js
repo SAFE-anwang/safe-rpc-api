@@ -40,10 +40,10 @@ result:
 var server = jayson.server({
   safe2eth: async function (args,callback)
   {
-    console.log(args[0])
-    console.log(args[1])
-    console.log(args[2])
-	  callback(null,await send.safe2eth(args[0],args[1],args[2]))
+    console.log("dst:",args[0])
+    console.log("amount:",args[1])
+    console.log("fee:",args[2])
+	callback(null,await send.safe2eth(args[0],args[1],args[2]))
   }
 })
 
