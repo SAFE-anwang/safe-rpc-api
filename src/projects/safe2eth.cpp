@@ -40,6 +40,9 @@ typedef struct
 	std::string safe_address;
 	std::string eth_address;
 	std::string eth_txid;
+	double eth_fee;
+	std::string eth_blockhash;
+	int eth_blockindex;
 }safe2eth;
 
 typedef std::map<std::string, safe2eth*> Safe2EthMap;
@@ -258,7 +261,7 @@ bool bExit = false;
 
 bool usage(int argc, char* argv[])
 {
-	printf("\n\nSafe2Eth: Transfer SAFE to the ETH network.\nUsage: safe2eth [address=XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe] [nBeginIndex=2371250]\n\n\n");
+	printf("\nSafe2Eth: Transfer SAFE to the ETH network.\nUsage: safe2eth [address=XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe] [nBeginIndex=2371250]\n\n\n");
 	if (argc == 1) return true;
 	if (argc == 2)
 	{
@@ -308,7 +311,7 @@ bool updateDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	if (eth.eth_txid.empty())
 		sprintf(sqlBuff, "UPDATE %s SET confirmations = %d WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.txid.c_str());
 	else
-		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s' WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.txid.c_str());
+		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(),eth.eth_fee,eth.eth_blockhash.c_str(),eth.eth_blockindex, eth.txid.c_str());
 	std::string sql = sqlBuff;
 	bool bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
@@ -412,7 +415,7 @@ result:
 	]
 }
 */
-std::string send_safe2eth(double value, std::string& dst)
+bool send_safe2eth(safe2eth& safe)
 {
 	HttpClient* httpClient = new HttpClient("http://127.0.0.1:50505");
 	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
@@ -421,26 +424,34 @@ std::string send_safe2eth(double value, std::string& dst)
 	std::string command = "safe2eth";
 	Json::Value params;
 
-	params.append(dst);
-	double fee = 0.5;
-	double amount = value - fee;
-	params.append(amount);
+	params.append(safe.eth_address);
+	double fee = 5; 
+	params.append(safe.amount - fee);
 	params.append(fee);
 
 	Value result;
 	try
 	{
-		std::cout << "\nCallMethod...command: " << command << ",params: " << params <<std::endl;
+		std::cout << "send_safe2eth::command: " << command << ",params: " << params <<std::endl;
 		result = client->CallMethod(command, params);
 	}
 	catch (JsonRpcException& e)
 	{
 		BitcoinException err(e.GetCode(), e.GetMessage());
 		throw err;
+		return false;
 	}
 	delete client;
 	delete httpClient;
-	return result[0].asString();
+
+	if (result[0].asString().empty()) return false;
+
+	safe.eth_txid = result[0].asString();
+	safe.eth_fee =  result[1].asDouble();
+	safe.eth_blockhash = result[2].asString();
+	safe.eth_blockindex = result[3].asInt();
+
+	return true;
 }
 
 static int sendthread(mySQLiteDB& db, std::string& tab)
@@ -458,12 +469,12 @@ static int sendthread(mySQLiteDB& db, std::string& tab)
 	std::cout << "sendthread: sending safe to eth, count: " << safe2ethMap.size() << std::endl;
 	for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
 	{
-		std::string eth_txid = send_safe2eth(it->second->amount, it->second->eth_address);
-		if (eth_txid.empty()) {
+		bool bSuccess = send_safe2eth(*it->second);
+		if (bSuccess == false)
+		{
 			delete it->second;
 			continue;
 		}
-		it->second->eth_txid = eth_txid;
 
 		std::cout << "sendthread: txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
 
@@ -556,7 +567,10 @@ int main(int argc, char* argv[])
 		blockhash       VARCHAR(64), \
 		safe_address    VARCHAR(40), \
 		eth_address     VARCHAR(50), \
-		eth_txid		VARCHAR(64))";
+		eth_txid		VARCHAR(64), \
+		eth_fee			DOUBLE, \
+		eth_blockhash   VARCHAR(64), \
+		eth_blockindex	INTEGER);";
 
 	mySQLiteDB db("safe2eth.db", tab, sql);
 
