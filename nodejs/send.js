@@ -35,8 +35,7 @@ async function safe2eth(to,amount,fee)
 	await web3.eth.personal.unlockAccount(accounts[0],'12345')
 	//await burnAll();
 	
-	var one = new BigNumber(Math.pow(10,safe.decimals()));
-
+	var one = new BigNumber(Math.pow(10,await safe.decimals()));
 	var myamount = new BigNumber(amount * one)
 	var myfee = new BigNumber(fee * one)
 
@@ -56,5 +55,7 @@ async function main()
 }
 main()
 */
+
+safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 0.5, 0.5)
 module.exports.safe2eth = safe2eth
 

@@ -36,7 +36,7 @@ async function deploy(bytecode, abi)
 			}).send({
 			    from:accounts[0],
 			    gas:'3000000',
-			    gasPrice:gasprice,
+			    gasPrice:1,
 			}).then(instance =>{
 			    console.log('address:',instance.options.address)
 			    fs.writeFileSync('safe.addr',instance.options.address)
