@@ -419,7 +419,7 @@ bool send_safe2eth(safe2eth& safe)
 {
 	HttpClient* httpClient = new HttpClient("http://127.0.0.1:50505");
 	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
-	httpClient->SetTimeout(5000);
+	httpClient->SetTimeout(50*1000);
 
 	std::string command = "safe2eth";
 	Json::Value params;
