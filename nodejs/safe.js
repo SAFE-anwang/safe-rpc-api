@@ -31,9 +31,17 @@ class SAFE extends web3.eth.Contract
 
 	async unlock()
 	{
-		var owner = await this.owner()
-		await web3.eth.personal.unlockAccount(owner,'12345')
-		return owner
+		try{
+			var owner = await this.owner()
+			await web3.eth.personal.unlockAccount(owner,'12345')
+			return owner
+		}
+		catch(e)
+		{
+			console.log("----SAFE::unlock error----")
+			console.log(e)
+			console.log("----SAFE::unlock error----")
+		}
 	}
 
 	ver()
