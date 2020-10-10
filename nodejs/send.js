@@ -30,8 +30,8 @@ var BigNumber = require('bignumber.js');
 
 async function safe2eth(to,amount,fee)
 {
-	console.log("SAFE unlock...")
-	await safe.unlock();
+	//console.log("SAFE unlock...")
+	//await safe.unlock();
 
 	console.log("SAFE getinfo...")
 	await safe.getinfo()
@@ -58,6 +58,6 @@ async function main()
 main()
 */
 
-safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 0.5, 0.5)
+safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 1, 0.5)
 module.exports.safe2eth = safe2eth
 

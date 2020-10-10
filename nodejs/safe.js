@@ -26,6 +26,7 @@ class SAFE extends web3.eth.Contract
 	constructor(abi,addr)
 	{
 	  super(abi,addr)
+	  this.addr = addr
 	  this.listen2event()
 	}
 
@@ -97,7 +98,7 @@ class SAFE extends web3.eth.Contract
 
 	async txfee_eth(gasUsed)
 	{
-		return  (gasUsed * this.gasprice())/Math.pow(10,18)
+		return  (gasUsed * this.gasprice())/Math.pow(10,await this.decimals())
 	}
 
 	async txfee_safe(gasUsed)
@@ -110,8 +111,8 @@ class SAFE extends web3.eth.Contract
 	{
 		try
 		{
-			var owner = await this.unlock()
-
+			var owner = await this.owner()
+			console.log("ver:", this.ver())
 			console.log("name:", await this.name())
 			console.log("symbol:", await this.symbol())
 			console.log("owner:", owner)
@@ -129,7 +130,6 @@ class SAFE extends web3.eth.Contract
 	async safe2eth(to,amount,fee)
 	{
 		var owner = await this.unlock()
-		await web3.eth.personal.unlockAccount(owner,'12345')
 		try
 		{
 			var res = await this.methods.safe2eth(to,amount,fee).send({
@@ -154,12 +154,12 @@ class SAFE extends web3.eth.Contract
 			}, function(error, event){ })
 			.on('data', function(event)
 			{
-				console.log("----Safe2Eth_Event----")
+				console.log("-----SAFE::Safe2Eth_Event----")
 				console.log("txid:",event.transactionHash)
 				console.log("dst:",event.returnValues.dst)
 				console.log("amount:",event.returnValues.amount)
 				console.log("fee:",event.returnValues.fee)
-				console.log("----Safe2Eth_Event----")
+				console.log("-----SAFE::Safe2Eth_Event----")
 
 				//safe.getinfo()
 			})
@@ -173,12 +173,12 @@ class SAFE extends web3.eth.Contract
 			}, function(error, event){ })
 			.on('data', function(event)
 			{
-				console.log("----Eth2Safe_Event----")
+				console.log("-----SAFE::Eth2Safe_Event----")
 				console.log("txid:",event.transactionHash);
 				console.log("eth_address:",event.returnValues.src)
 				console.log("amount:",event.returnValues.amount)
 				console.log("safe_address:",event.returnValues.safe_address)
-				console.log("----Eth2Safe_Event----")
+				console.log("-----SAFE::Eth2Safe_Event----")
 
 				//safe.getinfo()
 			})
