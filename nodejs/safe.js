@@ -26,7 +26,6 @@ class SAFE extends web3.eth.Contract
 	constructor(abi,addr)
 	{
 	  super(abi,addr)
-	  await unlock()
 	  this.listen2event()
 	}
 
