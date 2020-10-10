@@ -446,7 +446,6 @@ bool send_safe2eth(safe2eth& safe)
 	catch (JsonRpcException& e)
 	{
 		BitcoinException err(e.GetCode(), e.GetMessage());
-		throw err;
 		return false;
 	}
 	delete client;
