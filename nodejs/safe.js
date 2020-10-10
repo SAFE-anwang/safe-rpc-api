@@ -95,14 +95,14 @@ class SAFE extends web3.eth.Contract
 	{
 		try
 		{
+			var owner = await this.owner()
+
 			console.log("name:", await this.name())
 			console.log("symbol:", await this.symbol())
-			console.log("owner:", await this.owner())
+			console.log("owner:", owner)
 			console.log("decimals:", await this.decimals())
 			console.log("totalSupply:", await this.totalSupply())
-
-			let accounts = await web3.eth.getAccounts()
-			console.log("accounts[0]:", await this.balanceOf(accounts[0]))
+			console.log("owner balance:", await this.balanceOf(owner))
 
 		}
 		catch (e) 
@@ -113,11 +113,13 @@ class SAFE extends web3.eth.Contract
 
 	async safe2eth(to,amount,fee)
 	{
-		let accounts = await web3.eth.getAccounts()
+		//let accounts = await web3.eth.getAccounts()
+		var owner = await this.owner()
+		await web3.eth.personal.unlockAccount(owner,'12345')
 		try
 		{
 			var res = await this.methods.safe2eth(to,amount,fee).send({
-				from: accounts[0],
+				from: owner,
 				value: 0,
 			})
 			console.log("res:", res)
