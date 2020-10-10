@@ -191,5 +191,5 @@ class SAFE extends web3.eth.Contract
 var result = initSAFE()
 var safe = new SAFE(JSON.parse(result[0]),result[1]);
 console.log("SAFE getinfo...")
-await safe.getinfo()
+safe.getinfo()
 module.exports = safe
