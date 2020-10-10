@@ -137,7 +137,7 @@ class SAFE extends web3.eth.Contract
 				value: 0
 			})
 			console.log("res:", res)
-			return [res.transactionHash,txfee_eth(res.gasUsed),res.blockHash,res.blockNumber];
+			return [res.transactionHash,this.txfee_eth(res.gasUsed),res.blockHash,res.blockNumber];
 		}
 		catch (e) 
 		{

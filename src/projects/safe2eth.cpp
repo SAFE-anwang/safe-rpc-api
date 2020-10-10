@@ -419,7 +419,7 @@ bool send_safe2eth(safe2eth& safe)
 {
 	HttpClient* httpClient = new HttpClient("http://127.0.0.1:50505");
 	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
-	httpClient->SetTimeout(50*1000);
+	httpClient->SetTimeout(5*60*1000);//5 minutes
 
 	std::string command = "safe2eth";
 	Json::Value params;
@@ -446,6 +446,7 @@ bool send_safe2eth(safe2eth& safe)
 	catch (JsonRpcException& e)
 	{
 		BitcoinException err(e.GetCode(), e.GetMessage());
+		std::cout << "send_safe2eth error" << std::endl << std::endl;
 		return false;
 	}
 	delete client;
@@ -457,6 +458,8 @@ bool send_safe2eth(safe2eth& safe)
 	safe.eth_fee =  result[1].asDouble();
 	safe.eth_blockhash = result[2].asString();
 	safe.eth_blockindex = result[3].asInt();
+
+	std::cout << "sendthread: txid:  "<< safe.eth_txid << ", fee: " << safe.eth_fee << ", hash: " << safe.eth_blockhash << ", index: " << safe.blockindex << std::endl;
 
 	return true;
 }
