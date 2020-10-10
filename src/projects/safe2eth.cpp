@@ -345,7 +345,7 @@ bool insertDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 
 	//没有该交易ID则插入整行数据
 	char sqlBuff[4096] = { 0 };
-	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s');", tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
+	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s',0,'',0);", tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
 		eth.blockindex, eth.blockhash.c_str(), eth.safe_address.c_str(), eth.eth_address.c_str(), eth.eth_txid.c_str());
 	sql = sqlBuff;
 	bRet = db.exec(sql, nullptr, nullptr);
@@ -360,7 +360,7 @@ int select_callback(void* data, int argc, char** argv, char** azColName)
 {
 	Safe2EthMap* psafe2ethMap = (Safe2EthMap*)data;
 	if (psafe2ethMap == nullptr) return 0;
-	if (argc != 9) return 0;
+	if (argc != 12) return 0;
 
 	safe2eth* record = new safe2eth;
 	record->txid = argv[0];
@@ -425,8 +425,16 @@ bool send_safe2eth(safe2eth& safe)
 	Json::Value params;
 
 	params.append(safe.eth_address);
-	double fee = 5; 
-	params.append(safe.amount - fee);
+	double fee = 0.1; 
+	double amount = safe.amount - fee;
+
+	if (amount <= 0)
+	{
+		std::cout << "send_safe2eth::amount less than or equel to zero. skipping..."  << std::endl;
+		return false;
+	}
+
+	params.append(amount);
 	params.append(fee);
 
 	Value result;
@@ -573,6 +581,9 @@ int main(int argc, char* argv[])
 		eth_blockindex	INTEGER);";
 
 	mySQLiteDB db("safe2eth.db", tab, sql);
+
+	std::thread send(sendthread, std::ref(db), std::ref(tab));
+	if (send.joinable()) send.join();
 
 	std::thread main(mainthread, std::ref(db), std::ref(tab), std::ref(myAddress), std::ref(need_confirms));
 
