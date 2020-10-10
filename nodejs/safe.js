@@ -90,21 +90,20 @@ class SAFE extends web3.eth.Contract
 	{
 		console.log('utils:' + web3.utils)
 	}
-	gasprice()
+	gasPrice()
 	{
-		console.log(web3.eth.gasPrice)
 		return  web3.eth.gasPrice
 	}
 
-	async txfee_eth(gasUsed)
+	txfee_eth(gasUsed)
 	{
-		return  (gasUsed * this.gasprice())/Math.pow(10,await this.decimals())
+		return  gasUsed/this.gasPrice()
 	}
 
 	async txfee_safe(gasUsed)
 	{
 		var eth_safe_rate = 1250
-		return (eth_safe_rate * await this.txfee_eth(gasUsed))
+		return (eth_safe_rate * this.txfee_eth(gasUsed))
 	}
 
 	async getinfo()
@@ -137,7 +136,7 @@ class SAFE extends web3.eth.Contract
 				value: 0,
 			})
 			console.log("res:", res)
-			return [res.transactionHash,res.gasUsed,res.blockHash,res.blockNumber];
+			return [res.transactionHash,txfee_eth(res.gasUsed),res.blockHash,res.blockNumber];
 		}
 		catch (e) 
 		{
