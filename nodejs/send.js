@@ -32,6 +32,9 @@ async function safe2eth(to,amount,fee)
 {
 	//console.log("SAFE unlock...")
 	//await safe.unlock();
+	console.log("to:",to)
+	console.log("amount:",amount)
+	console.log("fee:",fee)
 
 	console.log("SAFE getinfo...")
 	await safe.getinfo()
