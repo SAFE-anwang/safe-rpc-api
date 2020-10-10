@@ -128,12 +128,13 @@ class SAFE extends web3.eth.Contract
 
 	async safe2eth(to,amount,fee)
 	{
-		var owner = await this.unlock()
 		try
-		{
+		{   console.log("unlocking...")
+			var owner = await this.unlock()
+			console.log("methods.safe2eth...")
 			var res = await this.methods.safe2eth(to,amount,fee).send({
 				from: owner,
-				value: 0,
+				value: 0
 			})
 			console.log("res:", res)
 			return [res.transactionHash,txfee_eth(res.gasUsed),res.blockHash,res.blockNumber];

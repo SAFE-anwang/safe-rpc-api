@@ -30,6 +30,7 @@ var BigNumber = require('bignumber.js');
 
 async function safe2eth(to,amount,fee)
 {
+	console.log("SAFE::safe2eth preparing BigNumber...")
 	var one = new BigNumber(Math.pow(10,await safe.decimals()));
 	var myamount = new BigNumber(amount * one)
 	var myfee = new BigNumber(fee * one)
