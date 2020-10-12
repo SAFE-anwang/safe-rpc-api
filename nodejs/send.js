@@ -40,16 +40,6 @@ async function safe2eth(to,amount,fee)
 	return result
 }
 
-/*
-async function main()
-{
-	let accounts = await web3.eth.getAccounts()
-	var re = await safe2eth(accounts[1],10,1)
-	console.log(re)
-}
-main()
-*/
-
-var res = safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 1, 0.1).then(console.log)
+//var res = safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 1, 0.1).then(console.log)
 module.exports.safe2eth = safe2eth
 
