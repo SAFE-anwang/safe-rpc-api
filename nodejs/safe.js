@@ -132,12 +132,29 @@ class SAFE extends web3.eth.Contract
 		{   console.log("unlocking...")
 			var owner = await this.unlock()
 			console.log("methods.safe2eth...")
-			var res = await this.methods.safe2eth(to,amount,fee).send({
+			this.methods.safe2eth(to,amount,fee).send({
 				from: owner,
 				value: 0
+			}).on('transactionHash', function(hash)
+			{
+				console.log("transactionHash:", hash)
 			})
-			console.log("res:", res)
-			return [res.transactionHash,this.txfee_eth(res.gasUsed),res.blockHash,res.blockNumber];
+			.on('confirmation', function(confirmationNumber, receipt)
+			{
+				console.log("transactionHash:", receipt.transactionHash)
+				console.log("confirmation:", confirmation)
+			})
+			.on('receipt', function(receipt)
+			{
+				return [receipt.transactionHash,this.txfee_eth(receipt.gasUsed),receipt.blockHash,receipt.blockNumber];
+
+			 })
+			 .on('error', function(error, receipt)
+			 {
+				console.log("error:", error)
+				console.log("receipt:", receipt)
+			 })
+			
 		}
 		catch (e) 
 		{
