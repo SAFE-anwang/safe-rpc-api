@@ -36,9 +36,8 @@ async function safe2eth(to,amount,fee)
 
 	console.log("send::safe2eth...")
 	var result = await safe.safe2eth(to,myamount,myfee)
-	
-	if(result != null && result != undefined) 
-		return result
+
+	return result
 }
 
 /*
