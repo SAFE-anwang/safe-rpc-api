@@ -32,7 +32,8 @@ class SAFE extends web3.eth.Contract
 
 	async unlock()
 	{
-		try{
+		try
+		{
 			var owner = await this.owner()
 			await web3.eth.personal.unlockAccount(owner,'12345')
 			return owner
@@ -90,20 +91,16 @@ class SAFE extends web3.eth.Contract
 	{
 		console.log('utils:' + web3.utils)
 	}
-	gasPrice()
+
+	ethtxfee(gasUsed)
 	{
-		return  web3.eth.gasPrice
+		return  gasUsed/web3.eth.gasPrice
 	}
 
-	txfee_eth(gasUsed)
-	{
-		return  gasUsed/this.gasPrice()
-	}
-
-	async txfee_safe(gasUsed)
+	async safetxfee(gasUsed)
 	{
 		var eth_safe_rate = 1250
-		return (eth_safe_rate * this.txfee_eth(gasUsed))
+		return (eth_safe_rate * this.ethtxfee(gasUsed))
 	}
 
 	async getinfo()
@@ -128,21 +125,35 @@ class SAFE extends web3.eth.Contract
 
 	async safe2eth(to,amount,fee)
 	{
+		console.log("SAFE::unlocking...")
+		var owner = await this.unlock()
+
 		try
-		{   console.log("unlocking...")
-			var owner = await this.unlock()
-			console.log("methods.safe2eth...")
-			this.methods.safe2eth(to,amount,fee).send({
+		{   
+			console.log("SAFE::safe2eth...")
+			var res = await this.methods.safe2eth(to,amount,fee).send({
 				from: owner,
 				value: 0
-			}).on('transactionHash', function(hash)
+			})
+					
+				/*.then(function(receipt)
 			{
-				console.log("transactionHash:", hash)
+				console.log("receipt:", receipt)
+				//var eth_fee = this.ethtxfee(receipt.gasUsed);
+				res = receipt
+				
+			});*/
+
+			console.log("res:", res)
+			return [res.transactionHash,res.gasUsed,res.blockHash,res.blockNumber];
+
+				/*.on('transactionHash', function(hash)
+			{
+				
 			})
 			.on('confirmation', function(confirmationNumber, receipt)
 			{
-				console.log("transactionHash:", receipt.transactionHash)
-				console.log("confirmation:", confirmation)
+
 			})
 			.on('receipt', function(receipt)
 			{
@@ -152,8 +163,7 @@ class SAFE extends web3.eth.Contract
 			 .on('error', function(error, receipt)
 			 {
 				console.log("error:", error)
-				console.log("receipt:", receipt)
-			 })
+			 })*/
 			
 		}
 		catch (e) 
@@ -167,16 +177,16 @@ class SAFE extends web3.eth.Contract
 	async listen2event()
 	{
 		this.events.Safe2Eth_Event({
-		fromBlock: 0
+		fromBlock: 750
 			}, function(error, event){ })
 			.on('data', function(event)
 			{
-				console.log("-----SAFE::Safe2Eth_Event----")
+				console.log("-----SAFE::Safe2Eth_Event start----")
 				console.log("txid:",event.transactionHash)
 				console.log("dst:",event.returnValues.dst)
 				console.log("amount:",event.returnValues.amount)
 				console.log("fee:",event.returnValues.fee)
-				console.log("-----SAFE::Safe2Eth_Event----")
+				console.log("-----SAFE::Safe2Eth_Event end----")
 
 				//safe.getinfo()
 			})
@@ -190,12 +200,12 @@ class SAFE extends web3.eth.Contract
 			}, function(error, event){ })
 			.on('data', function(event)
 			{
-				console.log("-----SAFE::Eth2Safe_Event----")
+				console.log("-----SAFE::Eth2Safe_Event start----")
 				console.log("txid:",event.transactionHash);
 				console.log("eth_address:",event.returnValues.src)
 				console.log("amount:",event.returnValues.amount)
 				console.log("safe_address:",event.returnValues.safe_address)
-				console.log("-----SAFE::Eth2Safe_Event----")
+				console.log("-----SAFE::Eth2Safe_Event end----")
 
 				//safe.getinfo()
 			})
@@ -206,25 +216,9 @@ class SAFE extends web3.eth.Contract
 		}
 }
 
-function sleep(ms) 
-{
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
 var result = initSAFE()
 var safe = new SAFE(JSON.parse(result[0]),result[1]);
 
-while(true)
-{
-	console.log("SAFE getinfo...")
-	try
-	{
-		safe.getinfo()
-		break;
-	}
-	catch(error)
-	{
-		sleep(5000)
-	}
-}
-
+console.log("SAFE getinfo...")
+safe.getinfo()
 module.exports = safe

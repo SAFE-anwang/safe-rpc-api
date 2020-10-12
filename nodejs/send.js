@@ -30,12 +30,11 @@ var BigNumber = require('bignumber.js');
 
 async function safe2eth(to,amount,fee)
 {
-	console.log("SAFE::safe2eth preparing BigNumber...")
-	var one = new BigNumber(Math.pow(10,await safe.decimals()));
+	var one = new BigNumber(Math.pow(10,18));
 	var myamount = new BigNumber(amount * one)
 	var myfee = new BigNumber(fee * one)
 
-	console.log("SAFE::safe2eth...")
+	console.log("send::safe2eth...")
 	var result = await safe.safe2eth(to,myamount,myfee)
 	
 	if(result != null && result != undefined) 
@@ -52,6 +51,6 @@ async function main()
 main()
 */
 
-//safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 1, 0.5)
+var res = safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 1, 0.1).then(console.log)
 module.exports.safe2eth = safe2eth
 
