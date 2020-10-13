@@ -21,9 +21,11 @@ class SAFE extends web3.eth.Contract
 {
 	constructor(abi,addr)
 	{
+	  var this.eth2safe = new Array();
 	  super(abi,addr)
 	  this.addr = addr
 	  this.listen2event()
+		  
 	}
 
 	async unlock()
@@ -86,6 +88,29 @@ class SAFE extends web3.eth.Contract
 	{
 		var eth_safe_rate = 1250
 		return (eth_safe_rate * this.ethtxfee(gasUsed))
+	}
+
+	push_eth2safe(txid,eth_addr,value,safe_addr)
+	{
+		sendback = new Object();
+		sendback.eth_txid =txid;
+		sendback.eth_address=eth_addr;
+		sendback.amount=value;
+		sendback.safe_address=safe_addr;
+
+		this.eth2safe.push(sendback)
+	}
+
+	clear_eth2safe()
+	{
+		if(this.eth2safe.length > 0)
+			this.eth2safe.pop()
+	}
+	eth2safe()
+	{
+		var eth = this.eth2safe
+		this.clear_eth2safe()
+		return eth
 	}
 
 	async getinfo()
@@ -161,7 +186,7 @@ class SAFE extends web3.eth.Contract
 	async listen2event()
 	{
 		this.events.Safe2Eth_Event({
-		fromBlock: 750
+		fromBlock: 0
 			}, function(error, event){ })
 			.on('data', function(event)
 			{
@@ -171,7 +196,7 @@ class SAFE extends web3.eth.Contract
 				console.log("amount:",event.returnValues.amount)
 				console.log("fee:",event.returnValues.fee)
 				console.log("-----SAFE::Safe2Eth_Event end----")
-
+				
 				//safe.getinfo()
 			})
 			.on('changed', function(event){
@@ -190,7 +215,8 @@ class SAFE extends web3.eth.Contract
 				console.log("amount:",event.returnValues.amount)
 				console.log("safe_address:",event.returnValues.safe_address)
 				console.log("-----SAFE::Eth2Safe_Event end----")
-
+				
+				this.push_eth2safe(event.transactionHash,event.returnValues.src,event.returnValues.amount,event.returnValues.safe_address)
 				//safe.getinfo()
 			})
 			.on('changed', function(event){
@@ -202,6 +228,4 @@ class SAFE extends web3.eth.Contract
 
 var result = initSAFE()
 var safe = new SAFE(JSON.parse(result[0]),result[1]);
-
-safe.ethtxfee(345678)
 module.exports = safe
