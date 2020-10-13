@@ -7,6 +7,7 @@
 #include <sstream>    
 #include <string>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <vector>
 #include "mysqlite.h"
@@ -49,6 +50,18 @@ typedef std::map<std::string, safe2eth*> Safe2EthMap;
 typedef std::map<std::string, safe2eth*>::const_iterator Safe2EthMapIterator;
 
 typedef std::vector<std::string> StringVec;
+
+
+int g_nBeginIndex = 2435830;//从该区块号开始处理
+std::string g_myAddress = "XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe";//接收的兑换地址
+int g_need_confirms = 1; //确认数，达到确认数才开始处理
+double g_min_value = 0.1;//发送的最小SAFE金额
+double g_txfee = 0.1;    //要扣除的SAFE@ETH费用
+int g_scan_interval = 30; // 多长时间开始扫描最新交易：30 seconds
+int g_noderpc_timeout = 300;//与nodesjs的联系多长时间超时，默认5分钟
+std::string g_noderpc_url = "http://127.0.0.1:50505";//node js的RPC网址和端口
+std::string g_sqlitedb_file = "safe2eth.db";//数据库名称
+bool g_bExit = false;
 
 
 /*
@@ -185,7 +198,7 @@ public:
 		return true;
 	}
 
-	bool getSafe2EthList(const StringVec& hashs, Safe2EthMap& safemap, const std::string& myAddr, const int min_confirms)
+	bool getSafe2EthList(const StringVec& hashs, Safe2EthMap& safemap, const std::string& myAddr, const int min_confirms, const int min_value)
 	{
 		std::cout.precision(2);
 
@@ -215,8 +228,8 @@ public:
 				for (std::vector<safe_vout_t> ::const_iterator it_vout = raw_tx.vout.begin(); it_vout != raw_tx.vout.end(); it_vout++)
 				{
 
-					//如果发送的不是SAFE，或者有锁定时间，都跳过。
-					if (it_vout->txType != 1 || it_vout->nUnlockedHeight != 0) continue;
+					//如果发送的不是SAFE，或者有锁定时间，或者金额不到最小金额，这些交易都跳过。
+					if (it_vout->txType != 1 || it_vout->nUnlockedHeight != 0 || it_vout->value < min_value) continue;
 
 					StringVec* pVec = (StringVec*)&((*it_vout).scriptPubKey.addresses);
 					for (StringVec::const_iterator it_addr = pVec->begin(); it_addr != pVec->end(); it_addr++)//
@@ -254,38 +267,6 @@ public:
 	}
 };
 
-int nBeginIndex = 2371250;
-std::string myAddress = "XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe";
-int need_confirms = 30;
-bool bExit = false;
-
-bool usage(int argc, char* argv[])
-{
-	printf("\nSafe2Eth: Transfer SAFE to the ETH network.\nUsage: safe2eth [address=XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe] [nBeginIndex=2371250]\n\n\n");
-	if (argc == 1) return true;
-	if (argc == 2)
-	{
-		myAddress = atoi(argv[1]);
-		printf("address: %s accepted.\n", myAddress.c_str());
-	}
-	if (argc == 3)
-	{
-		int nFromIndex = atoi(argv[2]);
-		if (nFromIndex > nBeginIndex)
-			nBeginIndex = nFromIndex;
-		else
-			printf("too small index: %d, should be larger than %d.\n", nFromIndex, nBeginIndex);
-
-		printf("blockchain index: %d accepted.\n", nBeginIndex);
-	}
-	if (argc > 3)
-	{
-		printf("error params count: %d, should be no more than %d. exit...\n", argc, 3);
-		return false;
-	}
-	return true;
-}
-
 int getBlockCount(safenode& node)
 {
 	int nBlockCount = 0;
@@ -294,13 +275,13 @@ int getBlockCount(safenode& node)
 		THROW_RETURN(nBlockCount = node.getblockcount(), 0);
 		printf("current blockcount: %d\n", nBlockCount);
 
-		if (nBeginIndex >= nBlockCount)
+		if (g_nBeginIndex >= nBlockCount)
 		{
-			printf("blockchain count: %d, beginIndex: %d, blockchain sync not completed, waiting for 5 minutes...\n", nBlockCount, nBeginIndex);
-			std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
+			printf("blockchain count: %d, beginIndex: %d, blockchain sync not completed, waiting for 5 minutes...\n", nBlockCount, g_nBeginIndex);
+			std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
 		}
 
-	} while (nBeginIndex >= nBlockCount);
+	} while (g_nBeginIndex >= nBlockCount);
 
 	return nBlockCount;
 }
@@ -311,7 +292,7 @@ bool updateDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	if (eth.eth_txid.empty())
 		sprintf(sqlBuff, "UPDATE %s SET confirmations = %d WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.txid.c_str());
 	else
-		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(),eth.eth_fee,eth.eth_blockhash.c_str(),eth.eth_blockindex, eth.txid.c_str());
+		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.eth_fee, eth.eth_blockhash.c_str(), eth.eth_blockindex, eth.txid.c_str());
 	std::string sql = sqlBuff;
 	bool bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
@@ -383,7 +364,7 @@ bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap& safe2ethMap)
 	bool bRet = db.exec(sql, &select_callback, &safe2ethMap);
 	if (!bRet)
 	{
-		printf("cann't select data from db: %s, waiting for 5 minutes.\n", tab.c_str());
+		printf("cann't select data from db: %s.\n", tab.c_str());
 	}
 	return bRet;
 }
@@ -417,30 +398,29 @@ result:
 */
 bool send_safe2eth(safe2eth& safe)
 {
-	HttpClient* httpClient = new HttpClient("http://127.0.0.1:50505");
+	HttpClient* httpClient = new HttpClient(g_noderpc_url);
 	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
-	httpClient->SetTimeout(5*60*1000);//5 minutes
+	httpClient->SetTimeout(g_noderpc_timeout * 1000);//5 minutes
 
 	std::string command = "safe2eth";
 	Json::Value params;
 
 	params.append(safe.eth_address);
-	double fee = 0.1; 
-	double amount = safe.amount - fee;
+	double amount = safe.amount - g_txfee;
 
 	if (amount <= 0)
 	{
-		std::cout << "send_safe2eth::amount less than or equel to zero. skipping..."  << std::endl;
+		std::cout << "send_safe2eth::amount less than or equel to zero. skipping..." << std::endl;
 		return false;
 	}
 
-	params.append(amount);
-	params.append(fee);
+	params.append(safe.amount);
+	params.append(g_txfee);
 
 	Value result;
 	try
 	{
-		std::cout << "send_safe2eth::command: " << command << ",params: " << params <<std::endl;
+		std::cout << "send_safe2eth::command: " << command << ",params: " << params << std::endl;
 		result = client->CallMethod(command, params);
 	}
 	catch (JsonRpcException& e)
@@ -452,14 +432,25 @@ bool send_safe2eth(safe2eth& safe)
 	delete client;
 	delete httpClient;
 
-	if (result[0].asString().empty()) return false;
+	if (result.isNull() || !result.isArray() || result[0].asString().empty())
+	{
+		std::cout << "send_safe2eth rpc return error: " << result << std::endl << std::endl;
+		return false;
+	}
 
-	safe.eth_txid = result[0].asString();
-	safe.eth_fee =  result[1].asDouble();
-	safe.eth_blockhash = result[2].asString();
-	safe.eth_blockindex = result[3].asInt();
-
-	std::cout << "sendthread: txid:  "<< safe.eth_txid << ", fee: " << safe.eth_fee << ", hash: " << safe.eth_blockhash << ", index: " << safe.blockindex << std::endl;
+	try
+	{
+		safe.eth_txid = result[0].asString();
+		safe.eth_fee = result[1].asDouble();
+		safe.eth_blockhash = result[2].asString();
+		safe.eth_blockindex = result[3].asInt();
+	}
+	catch (...)
+	{
+		std::cout << "send_safe2eth return params number error" << result << std::endl << std::endl;
+		return false;
+	}
+	std::cout << "sendthread: txid:  " << safe.eth_txid << ", fee: " << safe.eth_fee << ", hash: " << safe.eth_blockhash << ", index: " << safe.blockindex << std::endl;
 
 	return true;
 }
@@ -471,8 +462,7 @@ static int sendthread(mySQLiteDB& db, std::string& tab)
 
 	if (!selectDB(db, tab, safe2ethMap))
 	{
-		printf("sendthread: error happened to selectDB: %s, waiting for 1 minutes\n", tab.c_str());
-		//std::this_thread::sleep_for(std::chrono::milliseconds(1 * 60 * 1000));
+		printf("sendthread: error happened to selectDB: %s\n", tab.c_str());
 		return 0;
 	}
 
@@ -498,8 +488,6 @@ static int sendthread(mySQLiteDB& db, std::string& tab)
 
 	safe2ethMap.clear();
 	std::cout << "sendthread: exiting...\n\n";
-	//std::cout << "sendthread: sleep_for 5 minutes, waiting for new tx...\n\n";
-	//std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
 
 	return 1;
 }
@@ -510,17 +498,17 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 	safenode node;
 	Safe2EthMap safe2ethMap;
 	std::cout << "\nmainthread: preparing to get SAFEs ready to enter eth...\n";
-	while (!bExit)
+	while (!g_bExit)
 	{
 		int nToIndex = getBlockCount(node) - 1;
 
-		printf("mainthread: getting blocks hashes %d, from: %d to %d\n", nToIndex - nBeginIndex + 1, nBeginIndex, nToIndex);
+		printf("mainthread: getting blocks hashes %d, from: %d to %d\n", nToIndex - g_nBeginIndex + 1, g_nBeginIndex, nToIndex);
 
 		StringVec hashs;
 
 		while (hashs.size() == 0)
 		{
-			THROW_NO_RETURN(node.getBlockHashes(nBeginIndex, nToIndex, hashs));
+			THROW_NO_RETURN(node.getBlockHashes(g_nBeginIndex, nToIndex, hashs));
 			if (hashs.size() == 0)
 			{
 				printf("mainthread: can't get required block hashs, waiting for 5 seconds...\n");
@@ -528,12 +516,12 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 			}
 		}
 
-		if ((int)hashs.size() != nToIndex - nBeginIndex + 1)
+		if ((int)hashs.size() != nToIndex - g_nBeginIndex + 1)
 		{
-			printf("mainthread: warning: required hashs: %d, however we got %d hashs.\n", nToIndex - nBeginIndex + 1, (int)hashs.size());
+			printf("mainthread: warning: required hashs: %d, however we got %d hashs.\n", nToIndex - g_nBeginIndex + 1, (int)hashs.size());
 		}
 
-		THROW_NO_RETURN(node.getSafe2EthList(hashs, safe2ethMap, myAddress, needed_confirms));
+		THROW_NO_RETURN(node.getSafe2EthList(hashs, safe2ethMap, myAddress, needed_confirms, g_min_value));
 		std::cout << "mainthread: safe2eth count: " << safe2ethMap.size() << std::endl;
 		for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
 		{
@@ -546,20 +534,118 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 			delete it->second;
 		}
 
-		if (safe2ethMap.size())
-		{
-			std::cout << "mainthread: start sendthread...\n";
-			std::thread send(sendthread, std::ref(db), std::ref(tab));
-			if (send.joinable()) send.join();
-		}
-		safe2ethMap.clear();
-		nBeginIndex = nToIndex - needed_confirms;
+		std::cout << "mainthread: start sendthread...\n";
+		std::thread send(sendthread, std::ref(db), std::ref(tab));
+		if (send.joinable()) send.join();
 
-		std::cout << "mainthread: sleep_for 5 minutes, waiting for new tx...\n\n";
-		std::this_thread::sleep_for(std::chrono::milliseconds(5 * 60 * 1000));
+		safe2ethMap.clear();
+		g_nBeginIndex = nToIndex - needed_confirms;
+
+		std::cout << "mainthread: sleep_for " << g_scan_interval << " seconds, waiting for new tx...\n\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
 	}
 
 	return 1;
+}
+
+bool saveconfig(std::string& configfile)
+{
+	Json::Value config;
+	Json::StyledWriter  json;
+	std::ofstream strJsonContent(configfile.c_str(), std::ios::out|std::ios::trunc);
+
+	config["g_nBeginIndex"] = Json::Value(g_nBeginIndex);
+	config["g_myAddress"] = Json::Value(g_myAddress);
+	config["g_need_confirms"] = Json::Value(g_need_confirms);
+	config["g_min_value"] = Json::Value(g_min_value);
+	config["g_txfee"] = Json::Value(g_txfee);
+	config["g_scan_interval"] = Json::Value(g_scan_interval);
+	config["g_noderpc_timeout"] = Json::Value(g_noderpc_timeout);
+	config["g_noderpc_url"] = Json::Value(g_noderpc_url);
+	config["g_sqlitedb_file"] = Json::Value(g_sqlitedb_file);
+
+	strJsonContent << json.write(config) << std::endl;
+	strJsonContent.close();
+	return true;
+}
+
+bool loadconfig(std::string& configfile)
+{
+	std::ifstream strJsonContent(configfile.c_str(), std::ios::in);
+	Json::Reader reader;
+	Json::Value config;
+
+	if (!strJsonContent.is_open())
+	{
+		std::cout << "Error opening config file: " << configfile << ", so this program will create this config file." << std::endl;
+		saveconfig(configfile);
+		return true;
+	}
+
+	if (!reader.parse(strJsonContent, config))
+	{
+		std::cout << "Error parse config file: " << configfile << std::endl;
+		strJsonContent.close();
+		return false;
+	}
+
+	if (config.isMember("g_nBeginIndex"))
+		g_nBeginIndex = config["g_nBeginIndex"].asInt();//从该区块号开始处理
+
+	if (config.isMember("g_myAddress"))
+		g_myAddress = config["g_myAddress"].asString();//接收的兑换地址
+
+	if (config.isMember("g_need_confirms"))
+		g_need_confirms = config["g_need_confirms"].asInt(); //确认数，达到确认数才开始处理
+
+	if (config.isMember("g_min_value"))
+		g_min_value = config["g_min_value"].asInt();//发送的最小SAFE金额
+
+	if (config.isMember("g_txfee"))
+		g_txfee = config["g_txfee"].asDouble();    //要扣除的SAFE@ETH费用
+
+	if (config.isMember("g_scan_interval"))
+		g_scan_interval = config["g_scan_interval"].asInt(); // 多长时间开始扫描最新交易：30 seconds
+
+	if (config.isMember("g_noderpc_timeout"))
+		g_noderpc_timeout = config["g_noderpc_timeout"].asInt();//与nodesjs的联系多长时间超时，默认5分钟
+
+	if (config.isMember("g_noderpc_url"))
+		g_noderpc_url = config["g_noderpc_url"].asString();//node js的RPC网址和端口
+
+	if (config.isMember("g_sqlitedb_file"))
+		g_sqlitedb_file = config["g_sqlitedb_file"].asString();//数据库文件名称
+
+	strJsonContent.close();
+	Json::StyledWriter  json;
+	std::cout << json.write(config) << std::endl;
+	return true;
+}
+
+bool usage(int argc, char* argv[])
+{
+	std::string config;
+	printf("\nSafe2Eth: Monitoring SAFE network and transfer SAFE to the ETH network.\n \
+Usage: safe2eth [config.json]\n\n \
+\tnote: config.json is a json style config file.\n \
+\tif it is not provided, then \"config.json\" will be the default config file.\n\n");
+
+	if (argc == 1)
+	{
+		config = "config.json";
+	}
+	else if (argc == 2)
+	{
+		config = argv[1];
+	}
+	else
+	{
+		printf("too many params: %d, should be no more than %d.\n", argc, 1);
+		return false;
+	}
+	printf("load params from config file: %s...\n", config.c_str());
+
+	return loadconfig(config);
 }
 
 int main(int argc, char* argv[])
@@ -582,12 +668,12 @@ int main(int argc, char* argv[])
 		eth_blockhash   VARCHAR(64), \
 		eth_blockindex	INTEGER);";
 
-	mySQLiteDB db("safe2eth.db", tab, sql);
+	mySQLiteDB db(g_sqlitedb_file, tab, sql);
 
 	std::thread send(sendthread, std::ref(db), std::ref(tab));
 	if (send.joinable()) send.join();
 
-	std::thread main(mainthread, std::ref(db), std::ref(tab), std::ref(myAddress), std::ref(need_confirms));
+	std::thread main(mainthread, std::ref(db), std::ref(tab), std::ref(g_myAddress), std::ref(g_need_confirms));
 
 	if (main.joinable()) main.join();
 
