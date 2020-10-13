@@ -16,18 +16,17 @@ function initSAFE()
 		console.log('safe.abi or safe.addr dont exist.');
 	}
 }
-
+var eth2safe_table = [];
 class SAFE extends web3.eth.Contract
 {
+	
 	constructor(abi,addr)
 	{
-	  var this.eth2safe = new Array();
 	  super(abi,addr)
 	  this.addr = addr
 	  this.listen2event()
-		  
 	}
-
+	
 	async unlock()
 	{
 		var owner = await this.owner()
@@ -98,17 +97,17 @@ class SAFE extends web3.eth.Contract
 		sendback.amount=value;
 		sendback.safe_address=safe_addr;
 
-		this.eth2safe.push(sendback)
+		eth2safe_table.push(sendback)
 	}
 
 	clear_eth2safe()
 	{
-		if(this.eth2safe.length > 0)
-			this.eth2safe.pop()
+		if(eth2safe_table.length > 0)
+			eth2safe_table.pop()
 	}
 	eth2safe()
 	{
-		var eth = this.eth2safe
+		var eth = this.eth2safe_table
 		this.clear_eth2safe()
 		return eth
 	}
