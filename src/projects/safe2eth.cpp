@@ -491,17 +491,16 @@ bool get_eth2safe(Eth2SafeMap& mymap)
 	
 	try
 	{
-		Json::Value::Members members = result.getMemberNames();
-		for (Json::Value::Members::iterator it = members.begin(); it != members.end(); it++)
+		for (ValueIterator it = result.begin(); it != result.end(); it++)
 		{
 			eth2safe* safe = new eth2safe;
-			safe->eth_txid =	 result[*it]["eth_txid"].asString();
-			safe->amount =		 result[*it]["amount"].asDouble();
-			safe->eth_address =  result[*it]["eth_address"].asString();
-			safe->safe_address = result[*it]["safe_address"].asString();
+			safe->eth_txid =	 (*it)["eth_txid"].asString();
+			safe->amount =		 (*it)["amount"].asDouble();
+			safe->eth_address =  (*it)["eth_address"].asString();
+			safe->safe_address = (*it)["safe_address"].asString();
 			mymap[safe->eth_txid] = safe;
 
-			std::cout << "get_eth2safe: txid:  " << safe->eth_txid << ", fee: " << safe->amount << ", hash: " << safe->eth_address << ", index: " << safe->safe_address << std::endl;
+			std::cout << "get_eth2safe: eth_txid:  " << safe->eth_txid << ", amount: " << safe->amount << ", eth_address: " << safe->eth_address << ", safe_address: " << safe->safe_address << std::endl;
 		}
 	}
 	catch (...)
@@ -754,7 +753,6 @@ static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confir
 
 		std::cout << "mainthread: sleep_for " << g_scan_interval << " seconds, waiting for new tx...\n\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
-		continue;
 	}
 
 	return 1;
