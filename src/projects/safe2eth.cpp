@@ -46,8 +46,21 @@ typedef struct
 	int eth_blockindex;
 }safe2eth;
 
+typedef struct
+{
+	std::string eth_txid;
+	std::string eth_address;
+	double amount;
+	std::string safe_address;
+	std::string txid;
+	int n;
+}eth2safe;
+
 typedef std::map<std::string, safe2eth*> Safe2EthMap;
 typedef std::map<std::string, safe2eth*>::const_iterator Safe2EthMapIterator;
+
+typedef std::map<std::string, eth2safe*> Eth2SafeMap;
+typedef std::map<std::string, eth2safe*>::const_iterator Eth2SafeMapIterator;
 
 typedef std::vector<std::string> StringVec;
 
@@ -116,7 +129,7 @@ void HexToStr(char* pszDest, const char* pbSrc, int nLen)
 }
 
 
-struct safenode : public SafeAPI
+class safenode : public SafeAPI
 {
 public:
 
@@ -265,34 +278,55 @@ public:
 		std::cout << "\rgetSafe2EthList progress: 100%   " << std::endl;
 		return true;
 	}
+
+	int getBlockCount()
+	{
+		int nBlockCount = 0;
+		do
+		{
+			THROW_RETURN(nBlockCount = getblockcount(), 0);
+			printf("current blockcount: %d\n", nBlockCount);
+
+			if (g_nBeginIndex >= nBlockCount)
+			{
+				printf("blockchain count: %d, beginIndex: %d, blockchain sync not completed, waiting for 5 minutes...\n", nBlockCount, g_nBeginIndex);
+				std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
+			}
+
+		} while (g_nBeginIndex >= nBlockCount);
+
+		return nBlockCount;
+	}
 };
 
-int getBlockCount(safenode& node)
-{
-	int nBlockCount = 0;
-	do
-	{
-		THROW_RETURN(nBlockCount = node.getblockcount(), 0);
-		printf("current blockcount: %d\n", nBlockCount);
 
-		if (g_nBeginIndex >= nBlockCount)
-		{
-			printf("blockchain count: %d, beginIndex: %d, blockchain sync not completed, waiting for 5 minutes...\n", nBlockCount, g_nBeginIndex);
-			std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
-		}
-
-	} while (g_nBeginIndex >= nBlockCount);
-
-	return nBlockCount;
-}
-
-bool updateDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
+bool update_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 {
 	char sqlBuff[4096] = { 0 };
 	if (eth.eth_txid.empty())
 		sprintf(sqlBuff, "UPDATE %s SET confirmations = %d WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.txid.c_str());
 	else
 		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.eth_fee, eth.eth_blockhash.c_str(), eth.eth_blockindex, eth.txid.c_str());
+	std::string sql = sqlBuff;
+	bool bRet = db.exec(sql, nullptr, nullptr);
+	if (!bRet)
+	{
+		printf("cann't update data to db: %s\n", eth.txid.c_str());
+	}
+	return bRet;
+}
+
+bool update_eth2safe(mySQLiteDB& db, std::string tab, eth2safe& eth)
+{
+	char sqlBuff[4096] = { 0 };
+	if (!eth.txid.empty())
+		sprintf(sqlBuff, "UPDATE %s SET txid = '%s', n = '%d' WHERE eth_txid == '%s' ;", tab.c_str(), eth.txid.c_str(), eth.n, eth.eth_txid.c_str());
+	else
+	{
+		printf("error: eth.txid is empty while eth_txid = %s\n", eth.eth_txid.c_str());
+		return false;
+	}
+
 	std::string sql = sqlBuff;
 	bool bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
@@ -311,7 +345,34 @@ int insert_callback(void* data, int argc, char** argv, char** azColName)
 	}
 	return 0;
 }
-bool insertDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
+
+bool insert_eth2safe(mySQLiteDB& db, std::string tab, eth2safe & eth)
+{
+	std::string sql = "SELECT count(eth_txid) AS count FROM " + tab + "  WHERE eth_txid == '" + eth.eth_txid + "';";
+	int nRow = 0;
+	bool bRet = db.exec(sql, &insert_callback, &nRow);
+	if (!bRet)
+	{
+		std::cout << "insert_eth2safe: cann't select eth_txid count from db: " << eth.eth_txid.c_str() << std::endl;
+	}
+
+	if (nRow != 0) //已经有该交易ID，则更新确认数
+		return update_eth2safe(db, tab, eth);
+
+	//没有该交易ID则插入整行数据
+	char sqlBuff[4096] = { 0 };
+	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s','%s',%f,'%s','',0);", tab.c_str(), eth.eth_txid.c_str(), eth.eth_address.c_str(), eth.amount,  \
+		 eth.safe_address.c_str());
+	sql = sqlBuff;
+	bRet = db.exec(sql, nullptr, nullptr);
+	if (!bRet)
+	{
+		printf("cann't insert data to db: %s\n", eth.txid.c_str());
+	}
+	return bRet;
+}
+
+bool insert_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 {
 	std::string sql = "SELECT count(txid) AS count FROM " + tab + "  WHERE txid == '" + eth.txid + "';";
 	int nRow = 0;
@@ -322,7 +383,7 @@ bool insertDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	}
 
 	if (nRow != 0) //已经有该交易ID，则更新确认数
-		return updateDB(db, tab, eth);
+		return update_safe2eth(db, tab, eth);
 
 	//没有该交易ID则插入整行数据
 	char sqlBuff[4096] = { 0 };
@@ -337,7 +398,7 @@ bool insertDB(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	return bRet;
 }
 
-int select_callback(void* data, int argc, char** argv, char** azColName)
+int select_callback_safe2eth(void* data, int argc, char** argv, char** azColName)
 {
 	Safe2EthMap* psafe2ethMap = (Safe2EthMap*)data;
 	if (psafe2ethMap == nullptr) return 0;
@@ -357,16 +418,99 @@ int select_callback(void* data, int argc, char** argv, char** azColName)
 	(*psafe2ethMap)[record->txid] = record;
 	return 0;
 }
+int select_callback_eth2safe(void* data, int argc, char** argv, char** azColName)
+{
+	Eth2SafeMap* pMap = (Eth2SafeMap*)data;
+	if (pMap == nullptr) return 0;
+	if (argc != 12) return 0;
 
-bool selectDB(mySQLiteDB& db, std::string tab, Safe2EthMap& safe2ethMap)
+	eth2safe* record = new eth2safe;
+	record->eth_txid = argv[0];
+	record->eth_address = argv[1];
+	record->amount = atof(argv[2]);
+	record->safe_address = argv[3];
+	record->txid = argv[4];
+	record->n = atoi(argv[5]);
+
+	(*pMap)[record->eth_txid] = record;
+	return 0;
+}
+bool select_safe2eth(mySQLiteDB& db, std::string tab, Safe2EthMap& safe2ethMap)
 {
 	std::string sql = "SELECT * FROM " + tab + "  WHERE eth_txid == '' OR eth_txid IS NULL;";
-	bool bRet = db.exec(sql, &select_callback, &safe2ethMap);
+	bool bRet = db.exec(sql, &select_callback_safe2eth, &safe2ethMap);
 	if (!bRet)
 	{
 		printf("cann't select data from db: %s.\n", tab.c_str());
 	}
 	return bRet;
+}
+bool select_eth2safe(mySQLiteDB& db, std::string tab, Eth2SafeMap& mymap)
+{
+	std::string sql = "SELECT * FROM " + tab + "  WHERE txid == '' OR txid IS NULL;";
+	bool bRet = db.exec(sql, &select_callback_eth2safe, &mymap);
+	if (!bRet)
+	{
+		printf("cann't select data from db: %s.\n", tab.c_str());
+	}
+	return bRet;
+}
+bool send_eth2safe(eth2safe & safe)
+{
+	return true;
+}
+bool get_eth2safe(Eth2SafeMap& mymap)
+{
+	HttpClient* httpClient = new HttpClient(g_noderpc_url);
+	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
+	httpClient->SetTimeout(g_noderpc_timeout * 1000);//5 minutes
+
+	std::string command = "eth2safe";
+	Json::Value params;
+
+	Json::Value result;
+	try
+	{
+		std::cout << "get_eth2safe::command: " << command << ",params: " << params << std::endl;
+		result = client->CallMethod(command, params);
+	}
+	catch (JsonRpcException& e)
+	{
+		BitcoinException err(e.GetCode(), e.GetMessage());
+		std::cout << "get_eth2safe error" << std::endl << std::endl;
+		return false;
+	}
+	delete client;
+	delete httpClient;
+
+	if (result.isNull())
+	{
+		std::cout << "get_eth2safe rpc return error: " << result << std::endl << std::endl;
+		return false;
+	}
+	
+	try
+	{
+		Json::Value::Members members = result.getMemberNames();
+		for (Json::Value::Members::iterator it = members.begin(); it != members.end(); it++)
+		{
+			eth2safe* safe = new eth2safe;
+			safe->eth_txid =	 result[*it]["eth_txid"].asString();
+			safe->amount =		 result[*it]["amount"].asDouble();
+			safe->eth_address =  result[*it]["eth_address"].asString();
+			safe->safe_address = result[*it]["safe_address"].asString();
+			mymap[safe->eth_txid] = safe;
+
+			std::cout << "get_eth2safe: txid:  " << safe->eth_txid << ", fee: " << safe->amount << ", hash: " << safe->eth_address << ", index: " << safe->safe_address << std::endl;
+		}
+	}
+	catch (...)
+	{
+		std::cout << "get_eth2safe return params number error" << result << std::endl << std::endl;
+		return false;
+	}
+
+	return true;
 }
 /*
 request:
@@ -455,19 +599,20 @@ bool send_safe2eth(safe2eth& safe)
 	return true;
 }
 
-static int sendthread(mySQLiteDB& db, std::string& tab)
+static int sendeththread(mySQLiteDB& db, std::string& tab)
 {
-	Safe2EthMap safe2ethMap;
-	std::cout << "\nsendthread: preparing to send safe to eth...\n";
+	std::string name = "send_eth_thread";
+	Safe2EthMap mymap;
+	std::cout << name << ": preparing to send safe to eth...\n";
 
-	if (!selectDB(db, tab, safe2ethMap))
+	if (!select_safe2eth(db, tab, mymap))
 	{
-		printf("sendthread: error happened to selectDB: %s\n", tab.c_str());
+		std::cout << name << ": error happened to select_eth2safe: " << tab.c_str() << std::endl;
 		return 0;
 	}
 
-	std::cout << "sendthread: sending safe to eth, count: " << safe2ethMap.size() << std::endl;
-	for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
+	std::cout << name << ": sending safe to eth, count: " << mymap.size() << std::endl;
+	for (Safe2EthMapIterator it = mymap.begin(); it != mymap.end(); it++)
 	{
 		bool bSuccess = send_safe2eth(*it->second);
 		if (bSuccess == false)
@@ -476,31 +621,78 @@ static int sendthread(mySQLiteDB& db, std::string& tab)
 			continue;
 		}
 
-		std::cout << "sendthread: txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
+		std::cout << name << ": txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
 
-		bool bRet = updateDB(db, tab, *it->second);
+		bool bRet = update_safe2eth(db, tab, *it->second);
 
 		if (!bRet)
-			std::cout << "sendthread: cann't update to db: txid: " << it->second->txid << ", eth_txid:" << it->second->eth_txid << std::endl;
+			std::cout << name << ": cann't update to db: txid: " << it->second->txid << ", eth_txid:" << it->second->eth_txid << std::endl;
 
 		delete it->second;
 	}
 
-	safe2ethMap.clear();
-	std::cout << "sendthread: exiting...\n\n";
+	mymap.clear();
+	std::cout << name << ": exiting...\n\n";
 
 	return 1;
 }
 
+static int sendsafethread(mySQLiteDB& db, std::string& tab)
+{
+	std::string name = "send_safe_thread";
+	Eth2SafeMap mymap;
+	std::cout << name << ": preparing to send SAFE@eth to SAFE network...\n";
 
-static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, int& needed_confirms)
+	if (!select_eth2safe(db, tab, mymap))
+	{
+		std::cout << name << ": error happened to select_eth2safe: " << tab.c_str()<<std::endl;
+		return 0;
+	}
+
+	std::cout << name << ": sending safe to SAFE network, count: " << mymap.size() << std::endl;
+	for (Eth2SafeMapIterator it = mymap.begin(); it != mymap.end(); it++)
+	{
+		bool bSuccess = send_eth2safe(*it->second);
+		if (bSuccess == false)
+		{
+			delete it->second;
+			continue;
+		}
+
+		std::cout << name << ": eth_txid: " << it->second->eth_txid << ",amount: " << it->second->amount << ", txid:" << it->second->txid << std::endl;
+
+		bool bRet = update_eth2safe(db, tab, *it->second);
+
+		if (!bRet)
+			std::cout << name << ": cann't update to db: eth_txid: " << it->second->eth_txid << ", txid:" << it->second->txid << std::endl;
+
+		delete it->second;
+	}
+
+	mymap.clear();
+	std::cout << name << ": exiting...\n\n";
+
+	return 1;
+}
+
+static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confirms)
 {
 	safenode node;
 	Safe2EthMap safe2ethMap;
+	Eth2SafeMap eth2safeMap;
 	std::cout << "\nmainthread: preparing to get SAFEs ready to enter eth...\n";
+
 	while (!g_bExit)
 	{
-		int nToIndex = getBlockCount(node) - 1;
+		std::cout << "mainthread: start safe2eth thread...\n";
+		std::thread safe2eth(sendeththread, std::ref(db), std::ref(db.tab));
+		if (safe2eth.joinable()) safe2eth.join();
+
+		std::cout << "mainthread: start eth2safe thread...\n";
+		std::thread eth2safe(sendsafethread, std::ref(db), std::ref(db.tab2));
+		if (eth2safe.joinable()) eth2safe.join();
+
+		int nToIndex = node.getBlockCount() - 1;
 
 		printf("mainthread: getting blocks hashes %d, from: %d to %d\n", nToIndex - g_nBeginIndex + 1, g_nBeginIndex, nToIndex);
 
@@ -525,24 +717,44 @@ static int mainthread(mySQLiteDB& db, std::string& tab, std::string& myAddress, 
 		std::cout << "mainthread: safe2eth count: " << safe2ethMap.size() << std::endl;
 		for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
 		{
-			bool bRet = insertDB(db, tab, *it->second);
+			bool bRet = insert_safe2eth(db, db.tab, *it->second);
 			if (bRet)
-				std::cout << "mainthread: blockindex:" << it->second->blockindex << ", txid: " << it->first << ", amount: " << it->second->amount << ", eth: " << it->second->eth_address << std::endl;
+				std::cout << "mainthread safe2eth: blockindex:" << it->second->blockindex << ", txid: " << it->first << ", amount: " << it->second->amount << ", eth: " << it->second->eth_address << std::endl;
 			else
-				std::cout << "mainthread: insertDB error ,blockindex:" << it->second->blockindex << ", txid: " << it->first << std::endl;
+				std::cout << "mainthread safe2eth: insert_safe2eth error ,blockindex:" << it->second->blockindex << ", txid: " << it->first << std::endl;
 
 			delete it->second;
 		}
 
-		std::cout << "mainthread: start sendthread...\n";
-		std::thread send(sendthread, std::ref(db), std::ref(tab));
-		if (send.joinable()) send.join();
+		if (get_eth2safe(eth2safeMap) == false)
+		{
+			std::cout << "mainthread: get_eth2safe error: " << std::endl;
+			safe2ethMap.clear();
+			g_nBeginIndex = nToIndex - needed_confirms;
 
-		safe2ethMap.clear();
+			std::cout << "mainthread: sleep_for " << g_scan_interval << " seconds, waiting for new tx...\n\n";
+			std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
+			continue;
+		}
+
+		std::cout << "mainthread: eth2safe count: " << eth2safeMap.size() << std::endl;
+		for (Eth2SafeMapIterator it = eth2safeMap.begin(); it != eth2safeMap.end(); it++)
+		{
+			bool bRet = insert_eth2safe(db, db.tab2, *it->second);
+			if (bRet)
+				std::cout << "mainthread eth2safe: eth_txid:" << it->second->eth_txid << ", amount: " << it->second->amount << ", eth_address: " << it->second->eth_address << std::endl;
+			else
+				std::cout << "mainthread eth2safe: insert_eth2safe error ,eth_txid:" << it->second->eth_txid <<  std::endl;
+
+			delete it->second;
+		}
+
+		safe2ethMap.clear(); eth2safeMap.clear();
 		g_nBeginIndex = nToIndex - needed_confirms;
 
 		std::cout << "mainthread: sleep_for " << g_scan_interval << " seconds, waiting for new tx...\n\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
+		continue;
 	}
 
 	return 1;
@@ -653,27 +865,9 @@ int main(int argc, char* argv[])
 	bool bRet = usage(argc, argv);
 	if (bRet == false) return 0;
 
-	std::string tab = "safe2eth";
-	std::string sql = "CREATE TABLE " + tab + "( \
-		txid			VARCHAR(64) PRIMARY KEY UNIQUE, \
-		n				INTEGER NOT NULL, \
-		amount			DOUBLE  NOT NULL, \
-		confirmations	INTEGER NOT NULL, \
-		blockindex		INTEGER NOT NULL, \
-		blockhash       VARCHAR(64), \
-		safe_address    VARCHAR(40), \
-		eth_address     VARCHAR(50), \
-		eth_txid		VARCHAR(64), \
-		eth_fee			DOUBLE, \
-		eth_blockhash   VARCHAR(64), \
-		eth_blockindex	INTEGER);";
+	mySQLiteDB db(g_sqlitedb_file);
 
-	mySQLiteDB db(g_sqlitedb_file, tab, sql);
-
-	std::thread send(sendthread, std::ref(db), std::ref(tab));
-	if (send.joinable()) send.join();
-
-	std::thread main(mainthread, std::ref(db), std::ref(tab), std::ref(g_myAddress), std::ref(g_need_confirms));
+	std::thread main(mainthread, std::ref(db), std::ref(g_myAddress), std::ref(g_need_confirms));
 
 	if (main.joinable()) main.join();
 

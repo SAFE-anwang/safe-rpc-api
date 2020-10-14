@@ -85,31 +85,27 @@ class SAFE extends web3.eth.Contract
 
 	async safetxfee(gasUsed)
 	{
-		var eth_safe_rate = 1250
+		var eth_safe_rate = 1600
 		return (eth_safe_rate * this.ethtxfee(gasUsed))
 	}
 
 	push_eth2safe(txid,eth_addr,value,safe_addr)
 	{
-		sendback = new Object();
+		var sendback = new Object();
 		sendback.eth_txid =txid;
 		sendback.eth_address=eth_addr;
 		sendback.amount=value;
 		sendback.safe_address=safe_addr;
-
+		
 		eth2safe_table.push(sendback)
 	}
 
-	clear_eth2safe()
-	{
-		if(eth2safe_table.length > 0)
-			eth2safe_table.pop()
-	}
 	eth2safe()
 	{
-		var eth = this.eth2safe_table
-		this.clear_eth2safe()
-		return eth
+		let newList = eth2safe_table.slice()
+		while(eth2safe_table.length > 0)
+			eth2safe_table.pop()
+		return newList
 	}
 
 	async getinfo()
@@ -222,7 +218,7 @@ class SAFE extends web3.eth.Contract
 				// remove event from local database
 			})
 			.on('error', console.error);
-		}
+	}
 }
 
 var result = initSAFE()

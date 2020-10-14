@@ -1,6 +1,6 @@
 #include "mysqlite.h"
 
-bool mySQLiteDB::open(std::string dbfilename, std::string tableName, std::string tabSQL)
+bool mySQLiteDB::open(std::string dbfilename)
 {
 	int rc = sqlite3_open(dbfilename.c_str(), &mydb);
 
@@ -10,15 +10,22 @@ bool mySQLiteDB::open(std::string dbfilename, std::string tableName, std::string
 		return false;
 	}
 
-	if (!tableName.empty() && !tableExist(tableName) && !tabSQL.empty())
+	if (!tab.empty() && !tableExist(tab) && !sql.empty())
 	{
-		if (!exec(tabSQL.c_str(), nullptr, nullptr))
+		if (!exec(sql.c_str(), nullptr, nullptr))
 		{
-			printf("cann't create table %s on database: %s\n", tableName.c_str(), dbfilename.c_str());
+			printf("cann't create table %s on database: %s\n", tab.c_str(), dbfilename.c_str());
 			return false;
 		}
 	}
-
+	if (!tab2.empty() && !tableExist(tab2) && !sql2.empty())
+	{
+		if (!exec(sql2.c_str(), nullptr, nullptr))
+		{
+			printf("cann't create table %s on database: %s\n", tab2.c_str(), dbfilename.c_str());
+			return false;
+		}
+	}
 	return true;
 }
 
