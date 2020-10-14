@@ -44,9 +44,9 @@ function eth2safe()
 	return safe.eth2safe()
 }
 //var res = safe2eth('0x795b6119dbccab340b1426d6d6359c443390dd40', 1, 0.1).then(console.log)
-safe.push_eth2safe(1,2,3,4)
-safe.push_eth2safe(5,6,7,8)
-safe.push_eth2safe(9,10,11,12)
+safe.push_eth2safe("1",2,"3","4")
+safe.push_eth2safe("5",6,"7","8")
+safe.push_eth2safe("9",10,"11","12")
 //var res = eth2safe()
 //console.log(res)
 
