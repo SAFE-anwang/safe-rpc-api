@@ -45,7 +45,7 @@ var server = jayson.server({
   },
   eth2safe: async function (args,callback)
   {
-    console.log("eth2safe incoming request: ",args)
+    console.log("eth2safe incoming request: ")
 	callback(null,send.eth2safe())
   }
 })
@@ -53,4 +53,3 @@ var server = jayson.server({
 app.use(jsonParser());
 app.use(server.middleware());
 app.listen(50505)
-

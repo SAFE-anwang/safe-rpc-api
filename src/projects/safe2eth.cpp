@@ -323,7 +323,7 @@ bool update_eth2safe(mySQLiteDB& db, std::string tab, eth2safe& eth)
 		sprintf(sqlBuff, "UPDATE %s SET txid = '%s', n = '%d' WHERE eth_txid == '%s' ;", tab.c_str(), eth.txid.c_str(), eth.n, eth.eth_txid.c_str());
 	else
 	{
-		printf("error: eth.txid is empty while eth_txid = %s\n", eth.eth_txid.c_str());
+		//printf("update_eth2safe error: eth.txid is empty while eth_txid = %s\n", eth.eth_txid.c_str());
 		return false;
 	}
 
@@ -331,7 +331,7 @@ bool update_eth2safe(mySQLiteDB& db, std::string tab, eth2safe& eth)
 	bool bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
 	{
-		printf("cann't update data to db: %s\n", eth.txid.c_str());
+		printf("update_eth2safe: cann't update data to db: %s\n", eth.txid.c_str());
 	}
 	return bRet;
 }
@@ -455,10 +455,16 @@ bool select_eth2safe(mySQLiteDB& db, std::string tab, Eth2SafeMap& mymap)
 	}
 	return bRet;
 }
-bool send_eth2safe(eth2safe & safe)
+bool send_eth2safe(eth2safe & item)
 {
+	safenode safe;
+	std::string txid;
+	THROW_RETURN(txid = safe.sendtoaddress(item.safe_address, item.amount),false);
+	item.txid = txid;
+	item.n = 0;
 	return true;
 }
+//获得eth2safe列表
 bool get_eth2safe(Eth2SafeMap& mymap)
 {
 	HttpClient* httpClient = new HttpClient(g_noderpc_url);
@@ -539,6 +545,7 @@ result:
 	]
 }
 */
+//通过NODEJS RPC发送要发送的信息，需要nodejs配合
 bool send_safe2eth(safe2eth& safe)
 {
 	HttpClient* httpClient = new HttpClient(g_noderpc_url);
@@ -597,19 +604,21 @@ bool send_safe2eth(safe2eth& safe)
 
 	return true;
 }
-
-static int sendeththread(mySQLiteDB& db, std::string& tab)
+//从sqlite3数据库的safe3eth表中获得要求在ETH获得SAFE的列表，并且通过NODEJS WEB3在ETH网络上发送SAFE
+static int safe2eth_thread(mySQLiteDB& db, std::string& tab)
 {
-	std::string name = "send_eth_thread";
+	std::string name = "safe2eth_thread";
 	Safe2EthMap mymap;
 	std::cout << name << ": preparing to send safe to eth...\n";
 
+	//从数据库中读取
 	if (!select_safe2eth(db, tab, mymap))
 	{
 		std::cout << name << ": error happened to select_eth2safe: " << tab.c_str() << std::endl;
 		return 0;
 	}
 
+	//逐一通过send_safe2eth发送
 	std::cout << name << ": sending safe to eth, count: " << mymap.size() << std::endl;
 	for (Safe2EthMapIterator it = mymap.begin(); it != mymap.end(); it++)
 	{
@@ -621,7 +630,8 @@ static int sendeththread(mySQLiteDB& db, std::string& tab)
 		}
 
 		std::cout << name << ": txid: " << it->second->txid << ",amount: " << it->second->amount << ", eth_txid:" << it->second->eth_txid << std::endl;
-
+		
+		//把发送结果保存至数据库safe2eth表
 		bool bRet = update_safe2eth(db, tab, *it->second);
 
 		if (!bRet)
@@ -635,10 +645,10 @@ static int sendeththread(mySQLiteDB& db, std::string& tab)
 
 	return 1;
 }
-
-static int sendsafethread(mySQLiteDB& db, std::string& tab)
+//从sqlite3数据库的eth2safe表中读取列表, 逐一向SAFE网络发送SAFE
+static int eth2safe_thread(mySQLiteDB& db, std::string& tab)
 {
-	std::string name = "send_safe_thread";
+	std::string name = "eth2safe_thread";
 	Eth2SafeMap mymap;
 	std::cout << name << ": preparing to send SAFE@eth to SAFE network...\n";
 
@@ -683,20 +693,23 @@ static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confir
 
 	while (!g_bExit)
 	{
+		//从sqlite3数据库的safe3eth表中获得要求在ETH获得SAFE的列表，并且通过NODEJS WEB3在ETH网络上发送SAFE
 		std::cout << "mainthread: start safe2eth thread...\n";
-		std::thread safe2eth(sendeththread, std::ref(db), std::ref(db.tab));
+		std::thread safe2eth(safe2eth_thread, std::ref(db), std::ref(db.tab));
 		if (safe2eth.joinable()) safe2eth.join();
 
+		//通过NODEJS RPC获得ETH网络上销毁SAFE在安网上发送SAFE的列表，并且存贮进sqlite3数据库的eth2safe表中
 		std::cout << "mainthread: start eth2safe thread...\n";
-		std::thread eth2safe(sendsafethread, std::ref(db), std::ref(db.tab2));
+		std::thread eth2safe(eth2safe_thread, std::ref(db), std::ref(db.tab2));
 		if (eth2safe.joinable()) eth2safe.join();
 
+		//获得目前最新区块索引
 		int nToIndex = node.getBlockCount() - 1;
 
 		printf("mainthread: getting blocks hashes %d, from: %d to %d\n", nToIndex - g_nBeginIndex + 1, g_nBeginIndex, nToIndex);
 
 		StringVec hashs;
-
+		//获得所有最新的区块HASH列表
 		while (hashs.size() == 0)
 		{
 			THROW_NO_RETURN(node.getBlockHashes(g_nBeginIndex, nToIndex, hashs));
@@ -711,9 +724,11 @@ static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confir
 		{
 			printf("mainthread: warning: required hashs: %d, however we got %d hashs.\n", nToIndex - g_nBeginIndex + 1, (int)hashs.size());
 		}
-
+		//获得从SAFE兑换到SAFE@eth的列表到safe2ethMap中，要求是发送到myAddress，确认数到达needed_confirms，发送的SAFE金额最小为g_min_value
 		THROW_NO_RETURN(node.getSafe2EthList(hashs, safe2ethMap, myAddress, needed_confirms, g_min_value));
 		std::cout << "mainthread: safe2eth count: " << safe2ethMap.size() << std::endl;
+
+		//存贮到数据库的safe2eth表中，以备safe2eth_thread线程发送
 		for (Safe2EthMapIterator it = safe2ethMap.begin(); it != safe2ethMap.end(); it++)
 		{
 			bool bRet = insert_safe2eth(db, db.tab, *it->second);
@@ -724,9 +739,10 @@ static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confir
 
 			delete it->second;
 		}
-
+		//获得从SAFE@eth兑换到SAFE的列表
 		if (get_eth2safe(eth2safeMap) == false)
 		{
+			//出错就准备下一次
 			std::cout << "mainthread: get_eth2safe error: " << std::endl;
 			safe2ethMap.clear();
 			g_nBeginIndex = nToIndex - needed_confirms;
@@ -735,29 +751,32 @@ static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confir
 			std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
 			continue;
 		}
-
+		//存贮到数据库的eth2safe表中
 		std::cout << "mainthread: eth2safe count: " << eth2safeMap.size() << std::endl;
 		for (Eth2SafeMapIterator it = eth2safeMap.begin(); it != eth2safeMap.end(); it++)
 		{
 			bool bRet = insert_eth2safe(db, db.tab2, *it->second);
 			if (bRet)
-				std::cout << "mainthread eth2safe: eth_txid:" << it->second->eth_txid << ", amount: " << it->second->amount << ", eth_address: " << it->second->eth_address << std::endl;
+				std::cout << "mainthread insert_eth2safe: eth_txid:" << it->second->eth_txid << ", amount: " << it->second->amount << ", eth_address: " << it->second->eth_address << std::endl;
 			else
-				std::cout << "mainthread eth2safe: insert_eth2safe error ,eth_txid:" << it->second->eth_txid <<  std::endl;
+				std::cout << "mainthread insert_eth2safe: error ,eth_txid:" << it->second->eth_txid <<  std::endl;
 
 			delete it->second;
 		}
-
+		
 		safe2ethMap.clear(); eth2safeMap.clear();
+
+		//返回needed_confirms个块再扫描，防止漏掉上次未达到确认数的交易
 		g_nBeginIndex = nToIndex - needed_confirms;
 
+		//休眠g_scan_interval秒
 		std::cout << "mainthread: sleep_for " << g_scan_interval << " seconds, waiting for new tx...\n\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
 	}
 
 	return 1;
 }
-
+//保存配置参数
 bool saveconfig(std::string& configfile)
 {
 	Json::Value config;
@@ -778,27 +797,28 @@ bool saveconfig(std::string& configfile)
 	strJsonContent.close();
 	return true;
 }
-
+//读取配置参数
 bool loadconfig(std::string& configfile)
 {
 	std::ifstream strJsonContent(configfile.c_str(), std::ios::in);
 	Json::Reader reader;
 	Json::Value config;
 
+	//如果没有配置文件,就先生成一个新的
 	if (!strJsonContent.is_open())
 	{
 		std::cout << "Error opening config file: " << configfile << ", so this program will create this config file." << std::endl;
 		saveconfig(configfile);
 		return true;
 	}
-
+	//以JSON方式解析配置文件内容
 	if (!reader.parse(strJsonContent, config))
 	{
 		std::cout << "Error parse config file: " << configfile << std::endl;
 		strJsonContent.close();
 		return false;
 	}
-
+	//获得所有配置参数
 	if (config.isMember("g_nBeginIndex"))
 		g_nBeginIndex = config["g_nBeginIndex"].asInt();//从该区块号开始处理
 
@@ -831,7 +851,7 @@ bool loadconfig(std::string& configfile)
 	std::cout << json.write(config) << std::endl;
 	return true;
 }
-
+//获得命令行参数
 bool usage(int argc, char* argv[])
 {
 	std::string config;
@@ -840,6 +860,7 @@ Usage: safe2eth [config.json]\n\n \
 \tnote: config.json is a json style config file.\n \
 \tif it is not provided, then \"config.json\" will be the default config file.\n\n");
 
+	//配置文件名
 	if (argc == 1)
 	{
 		config = "config.json";
