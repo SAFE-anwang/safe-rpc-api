@@ -199,9 +199,11 @@ class SAFE extends web3.eth.Contract
 			})
 			.on('error', console.error);
 
+		var push_eth2safe = this.push_eth2safe
+
 		this.events.Eth2Safe_Event({
 		fromBlock: 0
-			}, function(error, event){ })
+			}, function(error, event, push_eth2safe){ })
 			.on('data', function(event)
 			{
 				console.log("-----SAFE::Eth2Safe_Event start----")
@@ -211,7 +213,7 @@ class SAFE extends web3.eth.Contract
 				console.log("safe_address:",event.returnValues.safe_address)
 				console.log("-----SAFE::Eth2Safe_Event end----")
 				
-				this.push_eth2safe(event.transactionHash,event.returnValues.src,event.returnValues.amount,event.returnValues.safe_address)
+				push_eth2safe(event.transactionHash,event.returnValues.src,event.returnValues.amount,event.returnValues.safe_address)
 				//safe.getinfo()
 			})
 			.on('changed', function(event){
