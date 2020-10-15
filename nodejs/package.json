@@ -1,4 +1,9 @@
 {
+  "name":"safe2eth",
+  "description":"safe2eth nodejs for web3 vs geth",
+  "version":"0.1.0-1",
+  "main":"rpc.js",
+  "scripts":{"start":"node rpc.js"},
   "dependencies": {
     "connect": "^3.7.0",
     "decimal.js": "^10.2.1",
