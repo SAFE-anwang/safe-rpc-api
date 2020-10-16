@@ -139,36 +139,10 @@ class SAFE extends web3.eth.Contract
 				from: owner,
 				value: 0
 			})
-					
-				/*.then(function(receipt)
-			{
-				console.log("receipt:", receipt)
-				//var eth_fee = this.ethtxfee(receipt.gasUsed);
-				res = receipt
-				
-			});*/
-
+		
 			console.log("res:", res)
 			return [res.transactionHash,await this.ethtxfee(res.gasUsed),res.blockHash,res.blockNumber];
 
-				/*.on('transactionHash', function(hash)
-			{
-				
-			})
-			.on('confirmation', function(confirmationNumber, receipt)
-			{
-
-			})
-			.on('receipt', function(receipt)
-			{
-				return [receipt.transactionHash,this.txfee_eth(receipt.gasUsed),receipt.blockHash,receipt.blockNumber];
-
-			 })
-			 .on('error', function(error, receipt)
-			 {
-				console.log("error:", error)
-			 })*/
-			
 		}
 		catch (e) 
 		{

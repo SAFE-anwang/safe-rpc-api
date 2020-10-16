@@ -299,13 +299,13 @@ public:
 	}
 };
 
-
+//更新safe2eth表
 bool update_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 {
 	char sqlBuff[4096] = { 0 };
-	if (eth.eth_txid.empty())
+	if (eth.eth_txid.empty())//如果eth_txid为空，则是更新确认数
 		sprintf(sqlBuff, "UPDATE %s SET confirmations = %d WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.txid.c_str());
-	else
+	else//如果eth_txid不为空，则已经发出SAFE@ETH，更新eth_txid和eth_fee，eth_blockhash，eth_blockindex
 		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.eth_fee, eth.eth_blockhash.c_str(), eth.eth_blockindex, eth.txid.c_str());
 	std::string sql = sqlBuff;
 	bool bRet = db.exec(sql, nullptr, nullptr);
@@ -315,14 +315,16 @@ bool update_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	}
 	return bRet;
 }
-
+//更新eth2safe表
 bool update_eth2safe(mySQLiteDB& db, std::string tab, eth2safe& eth)
 {
+	//更新SAFE交易ID和索引
 	char sqlBuff[4096] = { 0 };
 	if (!eth.txid.empty())
 		sprintf(sqlBuff, "UPDATE %s SET txid = '%s', n = '%d' WHERE eth_txid == '%s' ;", tab.c_str(), eth.txid.c_str(), eth.n, eth.eth_txid.c_str());
 	else
 	{
+		//如果SAFE交易ID为空，则返回错误
 		//printf("update_eth2safe error: eth.txid is empty while eth_txid = %s\n", eth.eth_txid.c_str());
 		return false;
 	}
@@ -345,9 +347,10 @@ int insert_callback(void* data, int argc, char** argv, char** azColName)
 	}
 	return 0;
 }
-
+//插入eth2safe表
 bool insert_eth2safe(mySQLiteDB& db, std::string tab, eth2safe & eth)
 {
+	//查看相同的eth_txid是否已经存在于表中
 	std::string sql = "SELECT count(eth_txid) AS count FROM " + tab + "  WHERE eth_txid == '" + eth.eth_txid + "';";
 	int nRow = 0;
 	bool bRet = db.exec(sql, &insert_callback, &nRow);
@@ -356,10 +359,10 @@ bool insert_eth2safe(mySQLiteDB& db, std::string tab, eth2safe & eth)
 		std::cout << "insert_eth2safe: cann't select eth_txid count from db: " << eth.eth_txid.c_str() << std::endl;
 	}
 
-	if (nRow != 0) //已经有该交易ID，则更新确认数
+	if (nRow != 0) //已经有该交易ID，则只能更新SAFE交易ID和索引
 		return update_eth2safe(db, tab, eth);
 
-	//没有该交易ID则插入整行数据
+	//没有该交易ID则插入整行数据，其中txid为空，索引为0
 	char sqlBuff[4096] = { 0 };
 	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s','%s',%f,'%s','',0);", tab.c_str(), eth.eth_txid.c_str(), eth.eth_address.c_str(), eth.amount,  \
 		 eth.safe_address.c_str());
@@ -371,7 +374,7 @@ bool insert_eth2safe(mySQLiteDB& db, std::string tab, eth2safe & eth)
 	}
 	return bRet;
 }
-
+//插入safe2eth表
 bool insert_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 {
 	std::string sql = "SELECT count(txid) AS count FROM " + tab + "  WHERE txid == '" + eth.txid + "';";
@@ -402,7 +405,11 @@ int select_callback_safe2eth(void* data, int argc, char** argv, char** azColName
 {
 	Safe2EthMap* psafe2ethMap = (Safe2EthMap*)data;
 	if (psafe2ethMap == nullptr) return 0;
-	if (argc != 12) return 0;
+	if (argc != 12)
+	{
+		std::cout << "select_callback_eth2safe::argc is %d " << argc << ", should be 23 ." << std::endl;
+		return 0;
+	}
 
 	safe2eth* record = new safe2eth;
 	record->txid = argv[0];
@@ -422,7 +429,11 @@ int select_callback_eth2safe(void* data, int argc, char** argv, char** azColName
 {
 	Eth2SafeMap* pMap = (Eth2SafeMap*)data;
 	if (pMap == nullptr) return 0;
-	if (argc != 12) return 0;
+	if (argc != 6)
+	{
+		std::cout << "select_callback_eth2safe::argc is %d " << argc << ", should be 6 ." << std::endl;
+		return 0;
+	}
 
 	eth2safe* record = new eth2safe;
 	record->eth_txid = argv[0];
