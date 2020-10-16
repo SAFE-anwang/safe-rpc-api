@@ -60,11 +60,10 @@ var server = jayson.server({
   getbalance: async function (args,callback)
   {
 	console.log("getbalance incoming request ")
-
-	var amount = parseFloat(web3.utils.fromWei(await safe.totalSupply(), 'ether'))
-	console.log(amount)
-
-	callback(null,amount)
+    var ret = new Object();
+	ret.amount = parseFloat(web3.utils.fromWei(await safe.totalSupply(), 'ether'))
+	console.log(ret)
+	callback(null,ret)
   }
 })
 

@@ -498,7 +498,7 @@ bool checkfinance(mySQLiteDB& db)
 {
 	HttpClient* httpClient = new HttpClient(g_noderpc_url);
 	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
-	httpClient->SetTimeout(g_noderpc_timeout * 1000);//5 minutes
+	httpClient->SetTimeout(10 * 1000);//5 seconds
 
 	std::string command = "getbalance";
 	Json::Value params;
@@ -518,6 +518,8 @@ bool checkfinance(mySQLiteDB& db)
 	delete client;
 	delete httpClient;
 
+	std::cout << "checkfinance result: " << result << std::endl;
+
 	if (result.isNull())
 	{
 		std::cout << "checkfinance rpc return error: " << result << std::endl << std::endl;
@@ -536,6 +538,7 @@ bool checkfinance(mySQLiteDB& db)
 	}
 	
 	safenode safe;
+	std::cout << "checkfinance getBalanceByAddr... ";
 	double actual_safe_left = safe.getBalanceByAddr(g_myAddress);
 
 	//统计所有花费的SAFE交易费
