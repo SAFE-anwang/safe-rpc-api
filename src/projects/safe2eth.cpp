@@ -44,6 +44,7 @@ typedef struct
 	double eth_fee;
 	std::string eth_blockhash;
 	int eth_blockindex;
+	double safe_fee;
 }safe2eth;
 
 typedef struct
@@ -54,6 +55,7 @@ typedef struct
 	std::string safe_address;
 	std::string txid;
 	int n;
+	double fee;
 }eth2safe;
 
 typedef std::map<std::string, safe2eth*> Safe2EthMap;
@@ -211,6 +213,13 @@ public:
 		return true;
 	}
 
+	double getBalanceByAddr(const std::string& addr)
+	{
+		double amount = - 1.0;
+		THROW_RETURN(amount = this->getbalance(), false);
+		return amount;
+	}
+
 	bool getSafe2EthList(const StringVec& hashs, Safe2EthMap& safemap, const std::string& myAddr, const int min_confirms, const int min_value)
 	{
 		std::cout.precision(2);
@@ -306,7 +315,7 @@ bool update_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 	if (eth.eth_txid.empty())//如果eth_txid为空，则是更新确认数
 		sprintf(sqlBuff, "UPDATE %s SET confirmations = %d WHERE txid == '%s' ;", tab.c_str(), eth.confirmations, eth.txid.c_str());
 	else//如果eth_txid不为空，则已经发出SAFE@ETH，更新eth_txid和eth_fee，eth_blockhash，eth_blockindex
-		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.eth_fee, eth.eth_blockhash.c_str(), eth.eth_blockindex, eth.txid.c_str());
+		sprintf(sqlBuff, "UPDATE %s SET eth_txid = '%s', eth_fee = %f, eth_blockhash = '%s', eth_blockindex = %d,safe_fee =%f WHERE txid == '%s' ;", tab.c_str(), eth.eth_txid.c_str(), eth.eth_fee, eth.eth_blockhash.c_str(), eth.eth_blockindex,eth.safe_fee, eth.txid.c_str());
 	std::string sql = sqlBuff;
 	bool bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
@@ -321,7 +330,7 @@ bool update_eth2safe(mySQLiteDB& db, std::string tab, eth2safe& eth)
 	//更新SAFE交易ID和索引
 	char sqlBuff[4096] = { 0 };
 	if (!eth.txid.empty())
-		sprintf(sqlBuff, "UPDATE %s SET txid = '%s', n = '%d' WHERE eth_txid == '%s' ;", tab.c_str(), eth.txid.c_str(), eth.n, eth.eth_txid.c_str());
+		sprintf(sqlBuff, "UPDATE %s SET txid = '%s', n = '%d' ,fee = '%f' WHERE eth_txid == '%s' ;", tab.c_str(), eth.txid.c_str(), eth.n, eth.fee, eth.eth_txid.c_str());
 	else
 	{
 		//如果SAFE交易ID为空，则返回错误
@@ -364,8 +373,7 @@ bool insert_eth2safe(mySQLiteDB& db, std::string tab, eth2safe & eth)
 
 	//没有该交易ID则插入整行数据，其中txid为空，索引为0
 	char sqlBuff[4096] = { 0 };
-	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s','%s',%f,'%s','',0);", tab.c_str(), eth.eth_txid.c_str(), eth.eth_address.c_str(), eth.amount,  \
-		 eth.safe_address.c_str());
+	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s','%s',%f,'%s','',0,0);", tab.c_str(), eth.eth_txid.c_str(), eth.eth_address.c_str(), eth.amount,eth.safe_address.c_str());
 	sql = sqlBuff;
 	bRet = db.exec(sql, nullptr, nullptr);
 	if (!bRet)
@@ -390,7 +398,7 @@ bool insert_safe2eth(mySQLiteDB& db, std::string tab, safe2eth& eth)
 
 	//没有该交易ID则插入整行数据
 	char sqlBuff[4096] = { 0 };
-	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s',0,'',0);", tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
+	sprintf(sqlBuff, "INSERT INTO %s VALUES('%s',%d,%f,%d,%u,'%s','%s','%s','%s',0,'',0,0);", tab.c_str(), eth.txid.c_str(), eth.n, eth.amount, eth.confirmations, \
 		eth.blockindex, eth.blockhash.c_str(), eth.safe_address.c_str(), eth.eth_address.c_str(), eth.eth_txid.c_str());
 	sql = sqlBuff;
 	bRet = db.exec(sql, nullptr, nullptr);
@@ -405,9 +413,9 @@ int select_callback_safe2eth(void* data, int argc, char** argv, char** azColName
 {
 	Safe2EthMap* psafe2ethMap = (Safe2EthMap*)data;
 	if (psafe2ethMap == nullptr) return 0;
-	if (argc != 12)
+	if (argc != 13)
 	{
-		std::cout << "select_callback_eth2safe::argc is %d " << argc << ", should be 23 ." << std::endl;
+		std::cout << "select_callback_eth2safe::argc is %d " << argc << ", should be 13 ." << std::endl;
 		return 0;
 	}
 
@@ -421,6 +429,10 @@ int select_callback_safe2eth(void* data, int argc, char** argv, char** azColName
 	record->safe_address = argv[6];
 	record->eth_address = argv[7];
 	record->eth_txid = argv[8];
+	record->eth_fee = atof(argv[9]);
+	record->eth_blockhash = argv[10];
+	record->eth_blockindex = atoi(argv[11]);
+	record->safe_fee = atof(argv[12]);
 
 	(*psafe2ethMap)[record->txid] = record;
 	return 0;
@@ -429,9 +441,9 @@ int select_callback_eth2safe(void* data, int argc, char** argv, char** azColName
 {
 	Eth2SafeMap* pMap = (Eth2SafeMap*)data;
 	if (pMap == nullptr) return 0;
-	if (argc != 6)
+	if (argc != 7)
 	{
-		std::cout << "select_callback_eth2safe::argc is %d " << argc << ", should be 6 ." << std::endl;
+		std::cout << "select_callback_eth2safe::argc is %d " << argc << ", should be 7." << std::endl;
 		return 0;
 	}
 
@@ -442,6 +454,7 @@ int select_callback_eth2safe(void* data, int argc, char** argv, char** azColName
 	record->safe_address = argv[3];
 	record->txid = argv[4];
 	record->n = atoi(argv[5]);
+	record->fee = atoi(argv[6]);
 
 	(*pMap)[record->eth_txid] = record;
 	return 0;
@@ -473,6 +486,93 @@ bool send_eth2safe(eth2safe & item)
 	THROW_RETURN(txid = safe.sendtoaddress(item.safe_address, item.amount),false);
 	item.txid = txid;
 	item.n = 0;
+
+	gettransaction_t tx;
+	THROW_NO_RETURN(tx = safe.gettransaction(txid, true));
+	item.fee = tx.fee;
+
+	return true;
+}
+//safe,eth, 对账
+bool checkfinance(mySQLiteDB& db)
+{
+	HttpClient* httpClient = new HttpClient(g_noderpc_url);
+	Client* client = new Client(*httpClient, JSONRPC_CLIENT_V2);
+	httpClient->SetTimeout(g_noderpc_timeout * 1000);//5 minutes
+
+	std::string command = "getbalance";
+	Json::Value params;
+
+	Json::Value result;
+	try
+	{
+		std::cout << "checkfinance::command: " << command << ",params: " << params << std::endl;
+		result = client->CallMethod(command, params);
+	}
+	catch (JsonRpcException& e)
+	{
+		BitcoinException err(e.GetCode(), e.GetMessage());
+		std::cout << "checkfinance error" << std::endl << std::endl;
+		return false;
+	}
+	delete client;
+	delete httpClient;
+
+	if (result.isNull())
+	{
+		std::cout << "checkfinance rpc return error: " << result << std::endl << std::endl;
+		return false;
+	}
+
+	double actual_contract_left = 0.0;
+	try
+	{
+		actual_contract_left = result.asDouble();
+	}
+	catch (...)
+	{
+		std::cout << "checkfinance return params number error" << result << std::endl << std::endl;
+		return false;
+	}
+	
+	safenode safe;
+	double actual_safe_left = safe.getBalanceByAddr(g_myAddress);
+
+	//统计所有花费的SAFE交易费
+	std::string sql = "SELECT sum(amount - safe_fee) AS count FROM " + db.tab;
+	double income_contract = 0;
+	bool bRet = db.exec(sql, &insert_callback, &income_contract);
+	if (!bRet)
+	{
+		std::cout << "checkfinance: cann't sum income_contract: " << db.tab << std::endl;
+		return false;
+	}
+
+	sql = "SELECT sum(amount) AS count FROM " + db.tab2;
+	double outcome_contract = 0;
+	bRet = db.exec(sql, &insert_callback, &outcome_contract);
+	if (!bRet)
+	{
+		std::cout << "checkfinance: cann't sum outcome_contract: " << db.tab2 << std::endl;
+		return false;
+	}
+
+	sql = "SELECT sum(fee) AS count FROM " + db.tab2;
+	double safe_tx_fee = 0;
+	bRet = db.exec(sql, &insert_callback, &safe_tx_fee);
+	if (!bRet)
+	{
+		std::cout << "checkfinance: cann't sum safe_tx_fee: " << db.tab2 << std::endl;
+		return false;
+	}
+
+	double should_left_contract = income_contract - outcome_contract;
+	double should_left_safe = should_left_contract - safe_tx_fee;
+
+	std::cout << "checkfinance: contract: income: " << income_contract << ", outcome: " << outcome_contract << std::endl;
+	std::cout << "checkfinance: contract: actually left: " << actual_contract_left <<", should left = " << should_left_contract <<", diff = "<< actual_contract_left - should_left_contract << std::endl;
+	std::cout << "checkfinance: safeaddr: actually left: " << actual_safe_left << ", shoule left: "<< should_left_safe <<", diff = "<< actual_safe_left - should_left_safe << std::endl << std::endl;
+
 	return true;
 }
 //获得eth2safe列表
@@ -611,7 +711,7 @@ bool send_safe2eth(safe2eth& safe)
 		std::cout << "send_safe2eth return params number error" << result << std::endl << std::endl;
 		return false;
 	}
-	std::cout << "sendthread: txid:  " << safe.eth_txid << ", fee: " << safe.eth_fee << ", hash: " << safe.eth_blockhash << ", index: " << safe.blockindex << std::endl;
+	std::cout << "send_safe2eth: txid:  " << safe.eth_txid << ", fee: " << safe.eth_fee << ", hash: " << safe.eth_blockhash << ", index: " << safe.blockindex << std::endl;
 
 	return true;
 }
@@ -783,6 +883,9 @@ static int mainthread(mySQLiteDB& db, std::string& myAddress, int& needed_confir
 		//休眠g_scan_interval秒
 		std::cout << "mainthread: sleep_for " << g_scan_interval << " seconds, waiting for new tx...\n\n";
 		std::this_thread::sleep_for(std::chrono::milliseconds(g_scan_interval * 1000));
+
+		//检查财务情况
+		checkfinance(db);
 	}
 
 	return 1;

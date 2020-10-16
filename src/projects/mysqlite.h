@@ -31,7 +31,8 @@ public:
 		eth_txid		VARCHAR(64), \
 		eth_fee			DOUBLE, \
 		eth_blockhash   VARCHAR(64), \
-		eth_blockindex	INTEGER);";
+		eth_blockindex	INTEGER, \
+		safe_fee		DOUBLE);";
 
 
 	std::string tab2 = "eth2safe";
@@ -41,7 +42,8 @@ public:
 		amount			DOUBLE  NOT NULL, \
 	    safe_address    VARCHAR(40) NOT NULL, \
 		txid			VARCHAR(64), \
-		n				INTEGER);";
+		n				INTEGER, \
+		fee				DOUBLE);";
 
 private:
 	bool tableExist(const std::string& strTableName);

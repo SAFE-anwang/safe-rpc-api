@@ -1,8 +1,7 @@
 var web3 = require('./web3')
 var safe = require('./safe')
 var jayson = require('jayson')
-var send = require('./send')
-
+var BigNumber = require('bignumber.js');
 const jsonParser = require('body-parser').json;
 const connect = require('connect');
 const app = connect();
@@ -36,17 +35,36 @@ result:
 }
 */
 
+async function safe2eth(to,amount,fee)
+{
+	var one = new BigNumber(Math.pow(10,18));
+	var myamount = new BigNumber(amount * one)
+	var myfee = new BigNumber(fee * one)
+
+	return await safe.safe2eth(to,myamount,myfee)
+}
+
+
 // create a server
 var server = jayson.server({
   safe2eth: async function (args,callback)
   {
     console.log("safe2eth incoming request: ",args)
-	callback(null,await send.safe2eth(args[0],args[1],args[2]))
+	callback(null,await safe2eth(args[0],args[1],args[2]))
   },
   eth2safe: async function (args,callback)
   {
-    console.log("eth2safe incoming request: ")
-	callback(null,send.eth2safe())
+    console.log("eth2safe incoming request ")
+	callback(null,safe.eth2safe())
+  },
+  getbalance: async function (args,callback)
+  {
+	console.log("getbalance incoming request ")
+
+	var amount = parseFloat(web3.utils.fromWei(await safe.totalSupply(), 'ether'))
+	console.log(amount)
+
+	callback(null,amount)
   }
 })
 

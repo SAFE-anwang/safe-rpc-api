@@ -112,6 +112,9 @@ class SAFE extends web3.eth.Contract
 	{
 		try
 		{
+			console.log("SAFE::unlocking...")
+			var owner = await this.unlock()
+
 			var owner = await this.owner()
 			console.log("name:", await this.name())
 			console.log("symbol:", await this.symbol())
@@ -199,4 +202,6 @@ class SAFE extends web3.eth.Contract
 
 var result = initSAFE()
 var safe = new SAFE(JSON.parse(result[0]),result[1]);
+
+safe.getinfo()
 module.exports = safe
