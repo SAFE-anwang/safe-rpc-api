@@ -23,8 +23,8 @@ class SAFE extends web3.eth.Contract
 	constructor(abi,addr)
 	{
 	  super(abi,addr)
-	  this.addr = addr
 	  this.listen2event()
+	  this.addr = addr
 	}
 	
 	async unlock()
@@ -212,8 +212,8 @@ class SAFE extends web3.eth.Contract
 				console.log("amount:",event.returnValues.amount)
 				console.log("safe_address:",event.returnValues.safe_address)
 				console.log("-----SAFE::Eth2Safe_Event end----")
-				
-				push_eth2safe(event.transactionHash,event.returnValues.src,event.returnValues.amount,event.returnValues.safe_address)
+				var amount = parseFloat(web3.utils.fromWei(event.returnValues.amount, 'ether'))
+				push_eth2safe(event.transactionHash,event.returnValues.src,amount ,event.returnValues.safe_address)
 				//safe.getinfo()
 			})
 			.on('changed', function(event){
