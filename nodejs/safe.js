@@ -103,8 +103,8 @@ class SAFE extends web3.eth.Contract
 	eth2safe()
 	{
 		let newList = eth2safe_table.slice()
-		//while(eth2safe_table.length > 0)
-		//	eth2safe_table.pop()
+		while(eth2safe_table.length > 0)
+			eth2safe_table.pop()
 		return newList
 	}
 
