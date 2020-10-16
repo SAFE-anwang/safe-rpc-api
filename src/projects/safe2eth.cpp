@@ -66,7 +66,7 @@ typedef std::vector<std::string> StringVec;
 
 
 int g_nBeginIndex = 2435830;//从该区块号开始处理
-std::string g_myAddress = "XnfpiZJCDwgeJ6MdV9WQPUxX1MuCviZFbe";//接收的兑换地址
+std::string g_myAddress = "XhjK5ySArqRtKmSThLZmAWe7MrjfprvnRH";//接收的兑换地址
 int g_need_confirms = 1; //确认数，达到确认数才开始处理
 double g_min_value = 0.1;//发送的最小SAFE金额
 double g_txfee = 0.1;    //要扣除的SAFE@ETH费用
