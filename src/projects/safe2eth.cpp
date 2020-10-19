@@ -527,16 +527,17 @@ bool checkfinance(mySQLiteDB& db)
 	}
 
 	double actual_contract_left = 0.0;
-	try
-	{
-		actual_contract_left = result.asDouble();
-	}
-	catch (...)
-	{
-		std::cout << "checkfinance return params number error" << result << std::endl << std::endl;
-		return false;
-	}
+	//try
+	//{
+		actual_contract_left = result["amount"].asDouble();
+	//}
+	//catch (...)
+	//{
+	//	std::cout << "checkfinance return params number error" << result << std::endl << std::endl;
+	//	return false;
+	//}
 	
+	std::cout << "checkfinance safenode safe... ";
 	safenode safe;
 	std::cout << "checkfinance getBalanceByAddr... ";
 	double actual_safe_left = safe.getBalanceByAddr(g_myAddress);
