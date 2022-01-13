@@ -6,7 +6,7 @@ This is a C++ wrapper library for JSON-RPC communication with the SAFE daemon. B
 Building the library
 --------------------
 
-[![Build Status](https://travis-ci.org/SAFE-anwang/safe-rpc-api.svg?branch=master)](https://travis-ci.org/SAFE-anwang/safe-rpc-api)
+[![Build Status](https://travis-ci.com/SAFE-anwang/safe-rpc-api.svg?branch=master)](https://travis-ci.com/SAFE-anwang/safe-rpc-api)
 
 **Dependencies**
 
