@@ -1,0 +1,21 @@
+language: cpp
+
+compiler:
+  - gcc
+
+before_install:
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+  - sudo apt-get update -qq
+
+install:
+  - sudo apt-get install cmake git libmicrohttpd-dev libcurl4-openssl-dev libjsoncpp-dev libargtable2-dev libhiredis-dev libcurl4-openssl-dev libjsonrpccpp-dev libjsonrpccpp-tools
+  - sudo apt-get install -qq gcc-4.8 g++-4.8
+  - export CXX="g++-4.8"
+
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script:
+  - make
